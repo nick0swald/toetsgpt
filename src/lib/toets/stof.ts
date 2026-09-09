@@ -48,7 +48,7 @@ const BIOLOGIE: Vak = {
 
 const LEZEN: Vak = {
   id: "lees",
-  titel: "Lezen",
+  titel: "Leesvaardigheid",
   status: "live",
   boek: "Vakteksten",
   bronLabel: "Tijdelijk. Alleen leesvragen bij een vaktekst.",
