@@ -114,4 +114,4 @@ export type ToetsUitslag = {
   diagnose: Diagnose;
 };
 
-export type Screen = "start" | "vandaag" | "zelf" | "docent" | "exam" | "results" | "overzicht";
+export type Screen = "start" | "vandaag" | "zelf" | "briefje" | "docent" | "exam" | "results" | "overzicht";
