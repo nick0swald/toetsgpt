@@ -1,7 +1,7 @@
 export const KLASSEN = ["2.5G", "2.6G", "3.5G", "3.6G", "4GT", "3HGL"] as const;
 export type Klas = (typeof KLASSEN)[number];
 
-export const LEERJAREN = ["2", "3", "4"] as const;
+export const LEERJAREN = ["1", "2", "3", "4"] as const;
 export type Leerjaar = (typeof LEERJAREN)[number];
 
 export const NIVEAUS = ["BB", "KB", "GT"] as const;
@@ -114,4 +114,4 @@ export type ToetsUitslag = {
   diagnose: Diagnose;
 };
 
-export type Screen = "start" | "zelf" | "docent" | "exam" | "results" | "overzicht";
+export type Screen = "start" | "vandaag" | "zelf" | "docent" | "exam" | "results" | "overzicht";

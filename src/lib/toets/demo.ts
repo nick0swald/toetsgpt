@@ -629,6 +629,59 @@ export function bouwOefentoets(opts: {
   };
 }
 
+
+function isWarmup(q: Question): boolean {
+  const blob = `${q.prompt} ${q.situation} ${q.modelAnswer} ${q.stof?.label ?? ""}`.toLowerCase();
+  return /eenheid|formule|voorvoegsel|newton|m\/s|km\/h/.test(blob);
+}
+
+/** Korte dagstart: 3 eenheden/formules, daarna hoofdstuk of mix. */
+export function bouwVandaag(opts: {
+  leerjaar: string;
+  niveau: string;
+  hoofdstukId?: string;
+  seed?: number;
+}): Toets {
+  const count = 8;
+  const rng = mulberry32(opts.seed ?? Date.now() % 1_000_000);
+  const nask = bank(rng).filter((q) => !q.stof?.hoofdstukId.startsWith("bio-"));
+  const warm = shuffled(nask.filter(isWarmup), rng).slice(0, 3);
+  const used = new Set(warm.map((q) => q.id));
+  let restBron = nask.filter((q) => !used.has(q.id));
+  if (opts.hoofdstukId) {
+    const tagged = restBron.filter((q) => q.stof && q.stof.hoofdstukId === opts.hoofdstukId);
+    if (tagged.length) restBron = tagged;
+  }
+  const rest = shuffled(restBron, rng);
+  const picked = [...warm];
+  for (const q of rest) {
+    if (picked.length >= count) break;
+    if (!picked.includes(q)) picked.push(q);
+  }
+  const questions = balanceMcLetters(
+    picked.slice(0, count).map((q, i) => ({ ...q, id: `q${i + 1}` })),
+    rng,
+  );
+  const h = hoofdstukById(opts.hoofdstukId ?? "", "nask");
+  const titel = h ? `Vandaag · ${h.titel}` : "Vandaag oefenen";
+  return {
+    title: titel,
+    subject: "NaSk",
+    questions,
+    bron: {
+      kind: "zelf",
+      topic: titel,
+      count: questions.length,
+      soort: "mix",
+      tijd: "kort",
+      hoofdstukId: opts.hoofdstukId || undefined,
+      leerjaar: opts.leerjaar,
+      niveau: opts.niveau,
+      vakId: "nask",
+    },
+  };
+}
+
 export function bouwDemoToets(opts: Parameters<typeof bouwOefentoets>[0]): Toets {
   const id = opts.hoofdstukId ?? eersteHoofdstukId(opts.leerjaar, opts.niveau);
   return bouwOefentoets({

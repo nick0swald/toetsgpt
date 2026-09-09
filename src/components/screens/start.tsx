@@ -91,13 +91,20 @@ export function StartScreen() {
       <div className="mt-auto grid gap-3 pt-6">
         <Ingang
           icon={<PencilLine className="size-6" strokeWidth={2} />}
+          title="Vandaag oefenen"
+          body="Jaar, niveau, NaSk. Hoofdstuk mag leeg."
+          variant="primary"
+          onClick={() => !naamFout && go("vandaag")}
+        />
+        <Ingang
+          icon={<PencilLine className="size-6" strokeWidth={2} />}
           title="Zelf oefenen"
           body={
             state.vakId === "lees"
               ? "Alleen vakteksten. Geen rekenen."
               : "Kies leerjaar, niveau en hoofdstuk."
           }
-          variant="primary"
+          variant="secondary"
           onClick={() => !naamFout && go("zelf")}
         />
         <Ingang

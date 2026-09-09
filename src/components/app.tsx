@@ -5,6 +5,7 @@ import { ExamScreen } from "./screens/exam";
 import { OverzichtScreen } from "./screens/overzicht";
 import { ResultsScreen } from "./screens/results";
 import { StartScreen } from "./screens/start";
+import { VandaagScreen } from "./screens/vandaag";
 import { ZelfScreen } from "./screens/zelf";
 
 export function ToetsoefenApp() {
@@ -50,7 +51,8 @@ function Shell() {
   }
 
   let screen = <StartScreen />;
-  if (state.screen === "zelf") screen = <ZelfScreen />;
+  if (state.screen === "vandaag") screen = <VandaagScreen />;
+  else if (state.screen === "zelf") screen = <ZelfScreen />;
   else if (state.screen === "docent") screen = <DocentScreen />;
   else if (state.screen === "exam") screen = <ExamScreen />;
   else if (state.screen === "results") screen = <ResultsScreen />;
