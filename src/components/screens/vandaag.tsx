@@ -36,9 +36,9 @@ export function VandaagScreen() {
 
   return (
     <main className="flex flex-col">
-      <TopBar onBack={() => go("start")} label="Vandaag oefenen" />
+      <TopBar onBack={() => go("start")} label="Korte oefening" />
       <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
-        Eerst jaar, niveau en vak. Hoofdstuk mag leeg. Acht vragen, ongeveer tien minuten.
+        Kies jaar en niveau. Hoofdstuk mag leeg. Acht vragen, ongeveer tien minuten.
       </p>
 
       <section className="mt-6">
