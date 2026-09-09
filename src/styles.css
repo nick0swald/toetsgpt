@@ -1,33 +1,35 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
+  --font-sans: "Outfit", "Segoe UI", system-ui, sans-serif;
+  --font-serif: "Outfit", "Segoe UI", system-ui, sans-serif;
 
-  --color-background: #0c0c0a;
-  --color-foreground: #f3f1e8;
-  --color-card: #161614;
-  --color-muted-foreground: #9c998e;
-  --color-subtle: #6e6b62;
-  --color-primary: #e8c547;
-  --color-primary-foreground: #14120a;
-  --color-border: #2c2c28;
-  --color-destructive: #d98980;
-  --color-ok: #8fbf88;
+  --color-background: #ffffff;
+  --color-foreground: #09090b;
+  --color-card: #f4f4f5;
+  --color-muted-foreground: #52525b;
+  --color-subtle: #a1a1aa;
+  --color-primary: #6d28d9;
+  --color-primary-foreground: #ffffff;
+  --color-accent: #ff6a00;
+  --color-accent-foreground: #09090b;
+  --color-border: #e4e4e7;
+  --color-destructive: #e11d48;
+  --color-ok: #16a34a;
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 :root {
-  --shadow-border: 0 0 0 1px rgba(243, 241, 232, 0.08);
-  --shadow-border-hover: 0 0 0 1px rgba(243, 241, 232, 0.14);
-  color-scheme: dark;
+  --shadow-border: 0 0 0 1px rgba(9, 9, 11, 0.08);
+  --shadow-border-hover: 0 0 0 1px rgba(9, 9, 11, 0.14);
+  color-scheme: light;
 }
 
 @layer base {
@@ -35,7 +37,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background: var(--color-background);
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
@@ -62,7 +64,7 @@
   }
 
   ::selection {
-    background: color-mix(in oklab, var(--color-primary) 40%, transparent);
+    background: color-mix(in oklab, var(--color-primary) 22%, transparent);
     color: var(--color-foreground);
   }
 }
@@ -90,12 +92,10 @@
   from {
     opacity: 0;
     transform: translateY(8px);
-    filter: blur(2px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
-    filter: blur(0);
   }
 }
 

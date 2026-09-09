@@ -104,6 +104,7 @@ export function assembleMc(
     prompt: base.prompt,
     why: base.why,
     stof: base.stof,
+    skill: base.skill,
     points: 1,
     ...placed,
   };

@@ -4,27 +4,24 @@ import { type ButtonHTMLAttributes, forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 font-medium select-none transition-[transform,background-color,box-shadow,opacity] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:pointer-events-none disabled:opacity-40",
+  "inline-flex items-center justify-center gap-2 font-bold select-none transition-[opacity,transform,background-color] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-40 active:not-disabled:scale-[0.98] [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        primary:
-          "bg-primary text-primary-foreground shadow-[0_1px_0_rgba(255,255,255,0.18)_inset]",
-        secondary:
-          "bg-card text-foreground shadow-[var(--shadow-border)] hover:shadow-[var(--shadow-border-hover)]",
+        primary: "bg-primary text-primary-foreground hover:opacity-90",
+        secondary: "bg-accent text-accent-foreground hover:opacity-90",
         ghost: "bg-transparent text-muted-foreground hover:text-foreground",
-        outline:
-          "bg-transparent text-foreground shadow-[var(--shadow-border)] hover:shadow-[var(--shadow-border-hover)]",
-        danger: "bg-destructive text-white",
+        outline: "bg-transparent text-foreground ring-1 ring-border hover:ring-primary",
+        danger: "bg-destructive text-primary-foreground hover:opacity-90",
       },
       size: {
-        md: "min-h-11 rounded-lg px-4 text-sm",
-        lg: "min-h-12 w-full rounded-xl px-5 text-base",
-        sm: "min-h-10 rounded-md px-3 text-sm",
-        icon: "size-11 rounded-lg",
+        md: "h-12 whitespace-nowrap rounded-full px-5 text-sm",
+        lg: "min-h-14 w-full rounded-3xl px-5 py-3.5 text-left text-base [&_svg]:size-6",
+        sm: "h-11 whitespace-nowrap rounded-full px-4 text-sm",
+        icon: "size-11 rounded-full",
       },
       staticScale: {
-        false: "active:scale-[0.96]",
+        false: "",
         true: "",
       },
     },

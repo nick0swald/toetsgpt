@@ -6,13 +6,16 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Screen, Toets, ToetsUitslag } from "./types";
+import { DEFAULT_VAK_ID } from "./stof";
 import { gradeToets } from "./scoring";
+import { rapporteerOefening } from "./stats";
+import type { Screen, Toets, ToetsUitslag } from "./types";
 
 export type SessionState = {
   screen: Screen;
   naam: string;
   klas: string;
+  vakId: string;
   toets: Toets | null;
   answers: Record<string, string>;
   index: number;
@@ -20,12 +23,14 @@ export type SessionState = {
   submittedAt: number | null;
   uitslag: ToetsUitslag | null;
   confirmSubmit: boolean;
+  docentPin: string;
 };
 
 const initial: SessionState = {
   screen: "start",
   naam: "",
   klas: "",
+  vakId: DEFAULT_VAK_ID,
   toets: null,
   answers: {},
   index: 0,
@@ -33,12 +38,15 @@ const initial: SessionState = {
   submittedAt: null,
   uitslag: null,
   confirmSubmit: false,
+  docentPin: "",
 };
 
 type Api = {
   state: SessionState;
   setNaam: (v: string) => void;
   setKlas: (v: string) => void;
+  setVakId: (v: string) => void;
+  setDocentPin: (v: string) => void;
   go: (screen: Screen) => void;
   startToets: (toets: Toets) => void;
   setAnswer: (id: string, value: string) => void;
@@ -52,6 +60,12 @@ type Api = {
 
 const Ctx = createContext<Api | null>(null);
 
+function cijferBucket(cijfer: number): "onder" | "cesuur" | "boven" {
+  if (cijfer < 5.5) return "onder";
+  if (cijfer < 7) return "cesuur";
+  return "boven";
+}
+
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SessionState>(initial);
 
@@ -60,6 +74,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
   const setKlas = useCallback((v: string) => {
     setState((s) => ({ ...s, klas: v }));
+  }, []);
+  const setVakId = useCallback((v: string) => {
+    setState((s) => ({ ...s, vakId: v }));
+  }, []);
+  const setDocentPin = useCallback((v: string) => {
+    setState((s) => ({ ...s, docentPin: v }));
   }, []);
   const go = useCallback((screen: Screen) => {
     setState((s) => ({ ...s, screen, confirmSubmit: false }));
@@ -92,11 +112,26 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const submit = useCallback(() => {
     setState((s) => {
       if (!s.toets) return s;
+      const uitslag = gradeToets(s.toets, s.answers);
+      const klas = s.klas.trim();
+      const vakId = s.toets.bron.vakId || s.vakId || DEFAULT_VAK_ID;
+      const bucket = cijferBucket(uitslag.cijfer);
+      const events = uitslag.diagnose.perStof.map((row) => ({
+        klas,
+        vakId,
+        hoofdstukId: row.tag.hoofdstukId,
+        paragraafId: row.tag.paragraafId,
+        lastig: row.totaal > 0 && row.behaald / row.totaal < 0.55,
+        cijferBucket: bucket,
+      }));
+      if (klas && events.length > 0) {
+        void rapporteerOefening({ data: { events } }).catch(() => undefined);
+      }
       return {
         ...s,
         submittedAt: Date.now(),
         confirmSubmit: false,
-        uitslag: gradeToets(s.toets, s.answers),
+        uitslag,
         screen: "results",
       };
     });
@@ -106,11 +141,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       ...initial,
       naam: s.naam,
       klas: s.klas,
+      vakId: s.vakId,
+      docentPin: s.docentPin,
       screen: s.toets?.bron.kind === "docent" ? "docent" : "zelf",
     }));
   }, []);
   const home = useCallback(() => {
-    setState((s) => ({ ...initial, naam: s.naam, klas: s.klas }));
+    setState((s) => ({ ...initial, naam: s.naam, klas: s.klas, vakId: s.vakId }));
   }, []);
 
   const api = useMemo<Api>(
@@ -118,6 +155,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       state,
       setNaam,
       setKlas,
+      setVakId,
+      setDocentPin,
       go,
       startToets,
       setAnswer,
@@ -132,6 +171,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       state,
       setNaam,
       setKlas,
+      setVakId,
+      setDocentPin,
       go,
       startToets,
       setAnswer,

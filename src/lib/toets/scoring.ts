@@ -1,4 +1,5 @@
 import { extractNumbers, normalizeText } from "./format";
+import { LEES_TAG } from "./lees";
 import type {
   Diagnose,
   InvulQuestion,
@@ -89,11 +90,18 @@ export function diagnoseVan(perVraag: VraagUitslag[]): Diagnose {
   const map = new Map<string, { tag: StofTag; behaald: number; totaal: number }>();
   for (const v of perVraag) {
     const tag = v.question.stof;
-    if (!tag) continue;
-    const cur = map.get(tag.paragraafId) ?? { tag, behaald: 0, totaal: 0 };
-    cur.behaald += v.points;
-    cur.totaal += v.max;
-    map.set(tag.paragraafId, cur);
+    if (tag) {
+      const cur = map.get(tag.paragraafId) ?? { tag, behaald: 0, totaal: 0 };
+      cur.behaald += v.points;
+      cur.totaal += v.max;
+      map.set(tag.paragraafId, cur);
+    }
+    if (v.question.skill === "lees") {
+      const cur = map.get(LEES_TAG.paragraafId) ?? { tag: LEES_TAG, behaald: 0, totaal: 0 };
+      cur.behaald += v.points;
+      cur.totaal += v.max;
+      map.set(LEES_TAG.paragraafId, cur);
+    }
   }
   const perStof: StofScore[] = [...map.values()];
   const lastig = perStof.filter((s) => s.totaal > 0 && s.behaald / s.totaal < 0.55);

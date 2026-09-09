@@ -1,5 +1,7 @@
 import { nlGetal } from "./format";
-import { CURRICULUM, HOOFDSTUKKEN, eersteHoofdstukId, hoofdstukById } from "./stof";
+import { CURRICULUM, eersteHoofdstukId, hoofdstukById, vakOf } from "./stof";
+import { BANK_ALIAS, PARA_ALIAS } from "./nova";
+import { leesBank } from "./lees";
 import { assembleMc, balanceMcLetters, mulberry32, pick, shuffled, type Rng } from "./shuffle";
 import type {
   InvulQuestion,
@@ -477,6 +479,7 @@ function bank(rng: Rng): Question[] {
   return [
     q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14, q15, q16, q17, q18, q19, q20, q21,
     q22, q23, q24, q25, q26,
+    ...leesBank(rng),
   ];
 }
 
@@ -495,13 +498,18 @@ function rankLaag(list: Question[], lastig: string, rng: Rng): Question[] {
 
 function neemMix(source: Question[], count: number, rng: Rng): Question[] {
   if (count <= 0 || source.length === 0) return [];
-  const mcQs = shuffled(source.filter((q) => q.type === "mc"), rng);
-  const openQs = shuffled(source.filter((q) => q.type === "open"), rng);
-  const invulQs = shuffled(source.filter((q) => q.type === "invul"), rng);
-  const invulCount = Math.min(invulQs.length, Math.round(count * 0.25));
-  const openCount = Math.min(openQs.length, Math.round(count * 0.25));
-  const mcCount = Math.min(mcQs.length, Math.max(0, count - openCount - invulCount));
+  const leesQs = shuffled(source.filter((q) => q.skill === "lees"), rng);
+  const stofBron = source.filter((q) => q.skill !== "lees");
+  const leesCount = Math.min(leesQs.length, Math.max(1, Math.round(count * 0.25)));
+  const restCount = Math.max(0, count - leesCount);
+  const mcQs = shuffled(stofBron.filter((q) => q.type === "mc"), rng);
+  const openQs = shuffled(stofBron.filter((q) => q.type === "open"), rng);
+  const invulQs = shuffled(stofBron.filter((q) => q.type === "invul"), rng);
+  const invulCount = Math.min(invulQs.length, Math.round(restCount * 0.25));
+  const openCount = Math.min(openQs.length, Math.round(restCount * 0.25));
+  const mcCount = Math.min(mcQs.length, Math.max(0, restCount - openCount - invulCount));
   const picked: Question[] = [
+    ...leesQs.slice(0, leesCount),
     ...mcQs.slice(0, mcCount),
     ...openQs.slice(0, openCount),
     ...invulQs.slice(0, invulCount),
@@ -525,39 +533,49 @@ export function bouwOefentoets(opts: {
   lastig?: string;
   leerjaar?: string;
   niveau?: string;
+  vakId?: string;
 }): Toets {
   const count = opts.count ?? 8;
-  const soort = opts.soort ?? "auto";
+  const soort = opts.vakId === "lees" ? "lees" : (opts.soort ?? "auto");
   const seed = opts.seed ?? Date.now() % 1_000_000;
   const rng = mulberry32(seed);
-  const geladen = new Set(HOOFDSTUKKEN.map((h) => h.id));
-  const all = bank(rng).filter((q) => q.stof && geladen.has(q.stof.hoofdstukId));
+  const alias = opts.hoofdstukId ? (BANK_ALIAS[opts.hoofdstukId] ?? []) : [];
+  const stofIds = new Set<string>([opts.hoofdstukId ?? "", ...alias].filter(Boolean));
+  const all = bank(rng).filter((q) => {
+    const bio = q.stof?.hoofdstukId.startsWith("bio-");
+    if ((opts.vakId ?? "nask") === "lees") return q.skill === "lees";
+    if ((opts.vakId ?? "nask") === "biologie") return Boolean(bio);
+    return !bio;
+  });
   const paras = opts.paragraafIds?.filter(Boolean) ?? [];
+  const paraIds = new Set(paras.flatMap((p) => [p, ...(PARA_ALIAS[p] ?? [])]));
   const lastig = opts.lastig ?? "";
 
   let voorkeur = all;
   if (opts.hoofdstukId) {
-    const tagged = all.filter((q) => q.stof?.hoofdstukId === opts.hoofdstukId);
+    const tagged = all.filter((q) => q.stof && stofIds.has(q.stof.hoofdstukId));
     if (tagged.length) voorkeur = tagged;
   }
-  if (paras.length) {
-    const tagged = voorkeur.filter((q) => q.stof && paras.includes(q.stof.paragraafId));
+  if (paraIds.size) {
+    const tagged = voorkeur.filter((q) => q.stof && paraIds.has(q.stof.paragraafId));
     if (tagged.length) voorkeur = tagged;
   }
-  if (soort === "mc") voorkeur = voorkeur.filter((q) => q.type === "mc");
+  if (soort === "mc") voorkeur = voorkeur.filter((q) => q.type === "mc" && q.skill !== "lees");
   if (soort === "open") voorkeur = voorkeur.filter((q) => q.type === "open");
   if (soort === "invul") voorkeur = voorkeur.filter((q) => q.type === "invul");
+  if (soort === "lees") voorkeur = voorkeur.filter((q) => q.skill === "lees");
 
   const rest = all.filter((q) => !voorkeur.includes(q));
   const zelfdeHoofdstuk = rest.filter(
-    (q) => !opts.hoofdstukId || q.stof?.hoofdstukId === opts.hoofdstukId,
+    (q) => !opts.hoofdstukId || (q.stof && stofIds.has(q.stof.hoofdstukId)),
   );
   const overig = rest.filter((q) => !zelfdeHoofdstuk.includes(q));
   const lagen = [voorkeur, zelfdeHoofdstuk, overig].map((laag) => {
     let items = laag;
-    if (soort === "mc") items = items.filter((q) => q.type === "mc");
+    if (soort === "mc") items = items.filter((q) => q.type === "mc" && q.skill !== "lees");
     if (soort === "open") items = items.filter((q) => q.type === "open");
     if (soort === "invul") items = items.filter((q) => q.type === "invul");
+    if (soort === "lees") items = items.filter((q) => q.skill === "lees");
     return rankLaag(items, lastig, rng);
   });
 
@@ -568,6 +586,8 @@ export function bouwOefentoets(opts: {
     const nodig = count - picked.length;
     if (soort === "auto" || soort === "mix") {
       picked.push(...neemMix(beschikbaar, nodig, rng));
+    } else if (soort === "lees") {
+      picked.push(...shuffled(beschikbaar.filter((q) => q.skill === "lees"), rng).slice(0, nodig));
     } else {
       picked.push(...beschikbaar.slice(0, nodig));
     }
@@ -580,12 +600,18 @@ export function bouwOefentoets(opts: {
     rng,
   );
 
-  const h = hoofdstukById(opts.hoofdstukId ?? "");
-  const titel = h ? `Oefentoets ${h.titel.toLowerCase()}` : `Oefentoets ${CURRICULUM.vak}`;
+  const vak = vakOf(opts.vakId);
+  const h = hoofdstukById(opts.hoofdstukId ?? "", opts.vakId);
+  const titel =
+    vak.id === "lees"
+      ? "Oefening lezen"
+      : h
+        ? `Oefentoets ${h.titel.toLowerCase()}`
+        : `Oefentoets ${vak.titel}`;
 
   return {
-    title: opts.kind === "extra" ? `Extra oefening · ${h?.titel.toLowerCase() ?? CURRICULUM.vak}` : titel,
-    subject: CURRICULUM.vak,
+    title: opts.kind === "extra" ? `Extra oefening · ${h?.titel.toLowerCase() ?? vak.titel}` : titel,
+    subject: vak.titel,
     questions,
     bron: {
       kind: opts.kind ?? "zelf",
@@ -598,6 +624,7 @@ export function bouwOefentoets(opts: {
       lastig: lastig || undefined,
       leerjaar: opts.leerjaar,
       niveau: opts.niveau,
+      vakId: opts.vakId ?? "nask",
     },
   };
 }
@@ -608,7 +635,7 @@ export function bouwDemoToets(opts: Parameters<typeof bouwOefentoets>[0]): Toets
     ...opts,
     hoofdstukId: id,
     kind: opts.kind ?? "demo",
-    topic: opts.topic ?? hoofdstukById(id)?.titel ?? CURRICULUM.vak,
+    topic: opts.topic ?? hoofdstukById(id)?.titel ?? CURRICULUM.titel,
   });
 }
 

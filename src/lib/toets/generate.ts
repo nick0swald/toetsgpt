@@ -5,7 +5,8 @@ import { parseLeerlingToets } from "./parse-paste";
 import { balanceMcLetters, mulberry32, shuffled } from "./shuffle";
 import type { InvulQuestion, McQuestion, OpenQuestion, Question, Toets, ToetsBron, VraagSoort } from "./types";
 import { LETTERS } from "./types";
-import { CURRICULUM, hoofdstukById } from "./stof";
+import { CURRICULUM, hoofdstukById, vakOf } from "./stof";
+import { novaLesstof } from "./nova-boek.server";
 
 const InputSchema = z.object({
   mode: z.enum(["zelf", "docent", "regen", "extra"]),
@@ -13,7 +14,7 @@ const InputSchema = z.object({
   klas: z.string().max(12).optional(),
   lesstof: z.string().max(8000),
   count: z.number().int().min(4).max(12),
-  soort: z.enum(["auto", "mix", "mc", "open", "invul"]),
+  soort: z.enum(["auto", "mix", "mc", "open", "invul", "lees"]),
   tijd: z.enum(["kort", "10", "15", "20"]),
   previousTitle: z.string().max(120).optional(),
   leerjaar: z.string().max(4).optional(),
@@ -21,6 +22,7 @@ const InputSchema = z.object({
   hoofdstukId: z.string().max(40).optional(),
   paragraafIds: z.array(z.string().max(40)).max(12).optional(),
   lastig: z.string().max(400).optional(),
+  vakId: z.string().max(24).optional(),
 });
 
 export type GenerateInput = z.infer<typeof InputSchema>;
@@ -31,7 +33,8 @@ export type GenerateResult =
 
 const AiQuestion = z.object({
   type: z.enum(["mc", "open", "invul"]),
-  situation: z.string().min(8).max(600),
+  skill: z.enum(["stof", "lees"]).optional(),
+  situation: z.string().min(8).max(1200),
   prompt: z.string().min(4).max(400),
   points: z.number().int().min(1).max(4).optional(),
   correct: z.string().min(1).max(220).optional(),
@@ -50,8 +53,8 @@ const AiToets = z.object({
   questions: z.array(AiQuestion).min(4).max(12),
 });
 
-function systemPrompt(): string {
-  return `Je maakt een korte oefentoets voor VMBO-leerlingen (BB/KB/GT) van Ares058 in Leeuwarden, vak ${CURRICULUM.vak}. Docent: Nick Oswald.
+function systemPrompt(vakTitel: string): string {
+  return `Je maakt een korte oefentoets voor VMBO-leerlingen (BB/KB/GT) van Ares058 in Leeuwarden, vak ${vakTitel}. Docent: Nick Oswald.
 
 VORM
 - Cito-stijl: EERST een situatieschets, DAARNA de vraag. Nooit andersom.
@@ -60,7 +63,10 @@ VORM
 - Niet luguber. Niemand valt, botst of raakt gewond. Gebruik een steen, bal of kist.
 
 VRAAGTYPES
-- Mix: meerkeuze, open/bereken, en invul (één gat ___ in een korte zin).
+- Mix: meerkeuze, open/bereken, invul, én vakgerichte LEESVRAGEN.
+- Bij mix: minstens een kwart leesvragen (bij 8 vragen: 2). Bij biologie: minstens een derde.
+- Leesvraag: situation is een korte vaktekst (5–8 zinnen, VMBO). Daarna ÉÉN vraag over betekenis van een vakwoord, waar dit/daardoor naar verwijst, de hoofdzaak, of een gegeven uit de tekst. Geen rekenen. skill "lees".
+- Andere vragen: skill "stof".
 - Meerkeuze: geef "correct" (juiste tekst) en "distractors" (precies 3 foute teksten). GEEN letters A–D. De volgorde wordt later bepaald.
 - MC max 1 punt. Invul 1 punt. Open 2 punten.
 - Invul: prompt bevat precies één ___.
@@ -68,8 +74,9 @@ VRAAGTYPES
 
 OUTPUT
 - Alleen JSON.
-- { "title", "subject": "${CURRICULUM.vak}", "questions": [{
+- { "title", "subject": "${vakTitel}", "questions": [{
     "type": "mc"|"open"|"invul",
+    "skill": "stof"|"lees",
     "situation", "prompt",
     "correct": string,                 // mc: juiste optie-tekst
     "distractors": [string, string, string],
@@ -84,12 +91,14 @@ OUTPUT
 function userPrompt(data: GenerateInput): string {
   const soortLine =
     data.soort === "mc"
-      ? "Alleen meerkeuze."
+      ? "Alleen meerkeuze over de stof. Geen leesvragen."
       : data.soort === "open"
         ? "Alleen open vragen."
         : data.soort === "invul"
           ? "Alleen invulvragen met ___."
-          : "Mix: meerkeuze, een paar open, een paar invul.";
+          : data.soort === "lees"
+            ? "ALLEEN leesvragen. Elke vraag: eerst een korte vaktekst (5–8 zinnen), daarna één vraag over woord, verwijzing of hoofdzaak. Geen rekenen."
+            : "Mix: meerkeuze, een paar open, een paar invul, én minstens een kwart leesvragen bij een vaktekst.";
   const klas = data.klas ? `Klas ${data.klas}.` : "";
   const niveau = [data.leerjaar ? `leerjaar ${data.leerjaar}` : "", data.niveau ? `niveau ${data.niveau}` : ""]
     .filter(Boolean)
@@ -120,10 +129,14 @@ ${soortLine}
 LEERLINGTOETS:
 ${data.lesstof}`;
   }
+  const nova = novaLesstof(data.hoofdstukId, data.paragraafIds);
+  const bron = nova
+    ? `NOVA-LESSTOF (niet letterlijk overnemen; andere namen en getallen. Leesvragen: herschrijf een kort stuk vaktekst, geen boekopdracht):\n${nova}`
+    : `Lesstof of onderwerp:\n${data.lesstof || h?.titel || "dichtheid en snelheid"}`;
+  const extraPlak = !nova && data.lesstof ? "" : data.lesstof && nova ? `\nExtra van de leerling:\n${data.lesstof}` : "";
   return `${klas} ${niveau} ${stof} ${lastig} ${extra} ${regen}
 Maak ${data.count} vragen. ${soortLine}
-Lesstof of onderwerp:
-${data.lesstof || h?.titel || "dichtheid en snelheid"}`;
+${bron}${extraPlak}`;
 }
 
 function toQuestions(raw: z.infer<typeof AiToets>, data: GenerateInput): Question[] {
@@ -131,7 +144,7 @@ function toQuestions(raw: z.infer<typeof AiToets>, data: GenerateInput): Questio
     const stof = {
       hoofdstukId: data.hoofdstukId || "stof",
       paragraafId: q.paragraafId || data.paragraafIds?.[0] || "algemeen",
-      label: q.stofLabel || hoofdstukById(data.hoofdstukId ?? "")?.titel || CURRICULUM.vak,
+      label: q.stofLabel || hoofdstukById(data.hoofdstukId ?? "")?.titel || CURRICULUM.titel,
     };
     if (q.type === "mc") {
       const correct = q.correct ?? q.modelAnswer;
@@ -149,6 +162,7 @@ function toQuestions(raw: z.infer<typeof AiToets>, data: GenerateInput): Questio
         correctLetter: "A",
         modelAnswer: `A ${correct}`,
         why: q.why.trim(),
+        skill: q.skill === "lees" ? "lees" : "stof",
         stof,
       };
       return mq;
@@ -167,6 +181,7 @@ function toQuestions(raw: z.infer<typeof AiToets>, data: GenerateInput): Questio
           keywords: q.acceptKeywords,
           tolerance: 0.08,
         },
+        skill: q.skill === "lees" ? "lees" : "stof",
         stof,
       };
       return iq;
@@ -184,6 +199,7 @@ function toQuestions(raw: z.infer<typeof AiToets>, data: GenerateInput): Questio
         keywords: q.acceptKeywords,
         tolerance: 0.08,
       },
+      skill: q.skill === "lees" ? "lees" : "stof",
       stof,
     };
     return oq;
@@ -203,7 +219,7 @@ function extractJson(text: string): unknown {
 function bronVan(data: GenerateInput, count: number): ToetsBron {
   return {
     kind: data.mode === "docent" ? "docent" : data.mode === "extra" ? "extra" : "zelf",
-    topic: data.lesstof.slice(0, 80) || CURRICULUM.vak,
+    topic: data.lesstof.slice(0, 80) || CURRICULUM.titel,
     raw: data.lesstof,
     count,
     soort: data.soort as VraagSoort,
@@ -213,6 +229,7 @@ function bronVan(data: GenerateInput, count: number): ToetsBron {
     lastig: data.lastig,
     leerjaar: data.leerjaar,
     niveau: data.niveau,
+    vakId: data.vakId,
   };
 }
 
@@ -232,7 +249,7 @@ async function callGrok(data: GenerateInput): Promise<Toets | null> {
       max_tokens: 3500,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: systemPrompt() },
+        { role: "system", content: systemPrompt(vakOf(data.vakId).titel) },
         { role: "user", content: userPrompt(data) },
       ],
     }),
@@ -247,9 +264,10 @@ async function callGrok(data: GenerateInput): Promise<Toets | null> {
   const parsed = AiToets.parse(extractJson(text));
   const rng = mulberry32(Date.now() % 1_000_000);
   let questions = toQuestions(parsed, data);
-  if (data.soort === "mc") questions = questions.filter((q) => q.type === "mc");
+  if (data.soort === "mc") questions = questions.filter((q) => q.type === "mc" && q.skill !== "lees");
   if (data.soort === "open") questions = questions.filter((q) => q.type === "open");
   if (data.soort === "invul") questions = questions.filter((q) => q.type === "invul");
+  if (data.soort === "lees") questions = questions.filter((q) => q.skill === "lees");
   if (data.mode !== "docent") {
     questions = shuffled(questions, rng).slice(0, data.count);
     questions = balanceMcLetters(questions, rng);
@@ -258,7 +276,7 @@ async function callGrok(data: GenerateInput): Promise<Toets | null> {
   questions = questions.map((q, i) => ({ ...q, id: `q${i + 1}` }));
   return {
     title: parsed.title,
-    subject: parsed.subject ?? CURRICULUM.vak,
+    subject: parsed.subject ?? CURRICULUM.titel,
     questions,
     bron: bronVan(data, questions.length),
   };
@@ -278,12 +296,13 @@ function localFallback(data: GenerateInput): Toets | null {
       tijd: data.tijd,
       seed: Date.now() % 1_000_000,
       kind: data.mode === "extra" ? "extra" : "zelf",
-      topic: data.lesstof.trim() || data.hoofdstukId || CURRICULUM.vak,
+      topic: data.lesstof.trim() || data.hoofdstukId || CURRICULUM.titel,
       hoofdstukId: data.hoofdstukId,
       paragraafIds: data.paragraafIds,
       lastig: data.lastig,
       leerjaar: data.leerjaar,
       niveau: data.niveau,
+      vakId: data.vakId,
     });
   }
   return null;

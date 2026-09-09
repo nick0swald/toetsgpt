@@ -38,7 +38,7 @@ export function ExamScreen() {
   const last = index === total - 1;
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))]">
+    <main className="flex min-h-[70dvh] flex-col pb-4">
       <header className="flex items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-subtle">
@@ -73,9 +73,16 @@ export function ExamScreen() {
       ) : null}
 
       <article className="mt-5 flex-1">
-        <p className="font-serif text-[1.05rem] leading-relaxed text-foreground text-pretty">
-          {vraag.situation}
-        </p>
+        {vraag.skill === "lees" ? (
+          <>
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-subtle">Tekst</p>
+            <div className="mt-2 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-border)]">
+              <p className="text-[1.05rem] leading-relaxed text-foreground text-pretty">{vraag.situation}</p>
+            </div>
+          </>
+        ) : (
+          <p className="text-[1.05rem] leading-relaxed text-foreground text-pretty">{vraag.situation}</p>
+        )}
 
         {vraag.type === "invul" ? (
           <>
@@ -95,7 +102,11 @@ export function ExamScreen() {
             </p>
             <p className="mt-2 text-xs text-subtle">
               {vraag.points} punt{vraag.points === 1 ? "" : "en"}
-              {vraag.type === "mc" ? " · meerkeuze" : " · open"}
+              {vraag.skill === "lees"
+                ? " · leesvraag"
+                : vraag.type === "mc"
+                  ? " · meerkeuze"
+                  : " · open"}
             </p>
             {vraag.type === "mc" ? (
               <McOptions
@@ -183,7 +194,7 @@ function McOptions({
               type="button"
               onClick={() => onChange(opt.letter)}
               className={cn(
-                "flex w-full min-h-14 items-start gap-3 rounded-xl px-3.5 py-3 text-left",
+                "flex w-full min-h-14 items-start gap-3 rounded-2xl px-3.5 py-3 text-left",
                 "shadow-[var(--shadow-border)] transition-[box-shadow,background-color] duration-150 ease-[var(--ease-out)]",
                 "active:scale-[0.99]",
                 selected ? "bg-primary/15 shadow-[var(--shadow-border-hover)]" : "bg-card",

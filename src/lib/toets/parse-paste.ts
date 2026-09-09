@@ -160,7 +160,7 @@ export function parseLeerlingToets(
   return {
     toets: {
       title,
-      subject: CURRICULUM.vak,
+      subject: CURRICULUM.titel,
       questions,
       bron: { ...bron, raw: blad, kind: "docent", count: questions.length },
     },

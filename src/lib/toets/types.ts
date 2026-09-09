@@ -10,7 +10,7 @@ export type Niveau = (typeof NIVEAUS)[number];
 export const VRAAG_AANTALLEN = [4, 6, 8, 10, 12] as const;
 export type VraagAantal = (typeof VRAAG_AANTALLEN)[number];
 
-export type VraagSoort = "auto" | "mix" | "mc" | "open" | "invul";
+export type VraagSoort = "auto" | "mix" | "mc" | "open" | "invul" | "lees";
 export type TijdKeuze = "kort" | "10" | "15" | "20";
 
 export type Letter = "A" | "B" | "C" | "D";
@@ -40,6 +40,8 @@ type VraagBasis = {
   why: string;
   modelAnswer: string;
   stof?: StofTag;
+  /** stof = rekenen/kennis; lees = vaktekst lezen */
+  skill?: "stof" | "lees";
 };
 
 export type McQuestion = VraagBasis & {
@@ -75,6 +77,7 @@ export type ToetsBron = {
   lastig?: string;
   leerjaar?: string;
   niveau?: string;
+  vakId?: string;
 };
 
 export type Toets = {
@@ -111,4 +114,4 @@ export type ToetsUitslag = {
   diagnose: Diagnose;
 };
 
-export type Screen = "start" | "zelf" | "docent" | "exam" | "results";
+export type Screen = "start" | "zelf" | "docent" | "exam" | "results" | "overzicht";

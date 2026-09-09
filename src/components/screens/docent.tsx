@@ -93,8 +93,8 @@ export function DocentScreen() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 pb-10 pt-[max(1rem,env(safe-area-inset-top))]">
-      <TopBar onBack={() => go("start")} label="Toets van de docent" />
+    <main className="flex flex-col">
+      <TopBar onBack={() => go("overzicht")} label="Toets van de docent" />
 
       <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
         Plak de leerlingtoets als tekst. Een sleutel onderaan mag (kop SLEUTEL). Code volgt later.

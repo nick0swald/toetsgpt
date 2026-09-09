@@ -2,7 +2,7 @@
 
 Oefentoetsen voor VMBO-leerlingen (Aeres, klas van Nick Oswald). Tussen [Toetski](https://toetski.nl) en [OswaldGPT](https://oswaldgpt.nl).
 
-Leerlingen kiezen een hoofdstuk of plakken een toets, maken de vragen één voor één, en zien een oefenscore.
+Leerlingen kiezen een hoofdstuk, maken de vragen één voor één, en zien een oefenscore. De docentkant zit achter vijf keer tikken op de titel.
 
 Live: [toetsgpt.nl](https://toetsgpt.nl)
 
@@ -16,7 +16,9 @@ npm run dev
 
 Zet in `.env` (en in Vercel):
 
-- `XAI_API_KEY` — xAI-sleutel voor Grok. Zonder sleutel werkt de demo (dichtheid) nog; nieuwe stof uit een hoofdstuk valt terug op lokale vragen.
+- `XAI_API_KEY` — xAI-sleutel voor Grok. Zonder sleutel werken de NaSk-hoofdstukken met lokale vragen nog.
+- `DOCENT_PIN` — wachtwoord voor de docentkant (vijf keer tikken op ToetsGPT). Standaard `12341234` tot je dit zet.
+
 
 ## Deploy (Vercel)
 

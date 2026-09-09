@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { bewaarBriefje, briefjeVan } from "@/lib/toets/briefje";
 import { bouwOefentoets } from "@/lib/toets/demo";
 import { nlCijfer } from "@/lib/toets/format";
 import { generateToets } from "@/lib/toets/generate";
@@ -11,6 +12,7 @@ export function ResultsScreen() {
   const { state, startToets, home, resetKeepStudent } = useSession();
   const [busy, setBusy] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
+  const [bewaarHint, setBewaarHint] = useState<string | null>(null);
   const uitslag = state.uitslag;
   const toets = state.toets;
   if (!uitslag || !toets) return null;
@@ -18,6 +20,7 @@ export function ResultsScreen() {
   const diagnose = uitslag.diagnose;
   const heeftStof = diagnose.perStof.length > 0;
   const lastig = diagnose.lastig;
+  const briefje = briefjeVan(huidige, uitslag);
 
   async function maken(mode: "regen" | "extra") {
     setFout(null);
@@ -51,6 +54,7 @@ export function ResultsScreen() {
           lastig: extraLastig,
           leerjaar: bron.leerjaar,
           niveau: bron.niveau,
+          vakId: bron.vakId || state.vakId,
         }),
       );
       return;
@@ -73,6 +77,7 @@ export function ResultsScreen() {
           hoofdstukId,
           paragraafIds: extraParas.length ? extraParas : undefined,
           lastig: extraLastig || undefined,
+          vakId: bron.vakId || state.vakId,
         },
       });
       if (!res.ok) {
@@ -87,10 +92,24 @@ export function ResultsScreen() {
     }
   }
 
+  async function bewaren() {
+    setFout(null);
+    try {
+      const hoe = await bewaarBriefje(briefje);
+      setBewaarHint(
+        hoe === "gedeeld"
+          ? "Briefje gedeeld. Laad het later in bij Zelf oefenen."
+          : "Briefje bewaard. Laad het later in bij Zelf oefenen.",
+      );
+    } catch {
+      setFout("Bewaren lukte niet. Probeer opnieuw.");
+    }
+  }
+
   const wie = [state.naam.trim(), state.klas].filter(Boolean).join(" · ");
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 pb-12 pt-[max(1.25rem,env(safe-area-inset-top))]">
+    <main className="flex flex-col">
       <p className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">Uitslag</p>
       {wie ? <p className="mt-1 text-sm text-muted-foreground">{wie}</p> : null}
 
@@ -108,12 +127,13 @@ export function ResultsScreen() {
         <p className="mt-1 text-xs text-subtle">Lineair 1–10, cesuur 55%.</p>
       </div>
 
-      {heeftStof ? (
-        <section className="mt-6 rounded-2xl bg-card p-4 shadow-[var(--shadow-border)]">
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-subtle">
-            Diagnose
-          </p>
-          <ul className="mt-3 grid gap-2">
+      <section className="mt-6 rounded-2xl bg-card p-4 shadow-[var(--shadow-border)]">
+        <p className="text-xs font-medium uppercase tracking-[0.12em] text-subtle">
+          Oefenbriefje
+        </p>
+        <p className="mt-3 text-sm leading-relaxed text-foreground">{briefje.feedback}</p>
+        {heeftStof ? (
+          <ul className="mt-4 grid gap-2">
             {diagnose.perStof.map((s) => {
               const pct = s.totaal > 0 ? s.behaald / s.totaal : 0;
               const zwak = pct < 0.55;
@@ -137,17 +157,11 @@ export function ResultsScreen() {
               );
             })}
           </ul>
-          {lastig.length > 0 ? (
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Extra oefenen op: {lastig.map((s) => s.tag.label).join(", ")}.
-            </p>
-          ) : (
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Deze stof zit op of boven de cesuur.
-            </p>
-          )}
-        </section>
-      ) : null}
+        ) : null}
+        <p className="mt-3 text-xs leading-relaxed text-subtle">
+          Bewaar dit briefje. Later inladen bij Zelf oefenen, dan oefen je verder op dezelfde stof.
+        </p>
+      </section>
 
       <ol className="mt-8 grid gap-4">
         {uitslag.perVraag.map((v, i) => (
@@ -195,6 +209,7 @@ export function ResultsScreen() {
       </p>
 
       {fout ? <p className="mt-4 text-center text-sm text-destructive">{fout}</p> : null}
+      {bewaarHint ? <p className="mt-4 text-center text-sm text-muted-foreground">{bewaarHint}</p> : null}
 
       <div className="mt-6 grid gap-3">
         {heeftStof && lastig.length > 0 ? (
@@ -209,7 +224,10 @@ export function ResultsScreen() {
           onClick={() => void maken("regen")}
           disabled={busy}
         >
-          {busy ? "Nieuwe toets maken…" : "Nog een oefentoets"}
+          {busy ? "Nieuwe toets maken…" : "Opnieuw, zelfde stof"}
+        </Button>
+        <Button type="button" variant="secondary" size="lg" onClick={() => void bewaren()}>
+          Bewaar oefenbriefje
         </Button>
         <Button type="button" variant="secondary" size="lg" onClick={resetKeepStudent}>
           Andere stof
