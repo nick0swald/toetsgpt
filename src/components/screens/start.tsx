@@ -97,10 +97,10 @@ export function StartScreen() {
         <Ingang
           icon={<FileText className="size-6" strokeWidth={2} />}
           title="Briefje laden"
-          body="Eerder bewaard briefje inladen en verder oefenen."
+          body="Alleen een bewaard briefje kiezen. Daarna verder."
           variant="outline"
           grow
-          onClick={() => !naamFout && go("zelf")}
+          onClick={() => !naamFout && go("briefje")}
         />
         <p className="mt-auto pt-4 text-center text-xs leading-relaxed text-subtle">
           Ares058 VMBO Leeuwarden · toetsgpt.nl
