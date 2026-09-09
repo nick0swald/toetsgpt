@@ -34,7 +34,7 @@ export function BriefjeScreen() {
           lastig: b.lastig,
           leerjaar: b.leerjaar,
           niveau: b.niveau,
-          vakId: state.vakId || b.vak || "nask",
+          vakId: state.vakId === "lees" ? "lees" : "nask",
         }),
       );
     } catch {
