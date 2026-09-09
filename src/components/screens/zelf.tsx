@@ -182,7 +182,7 @@ export function ZelfScreen() {
 
   return (
     <main className="flex flex-col">
-      <TopBar onBack={() => go("start")} label={isLees ? "Lezen" : "Zelf oefenen"} />
+      <TopBar onBack={() => go("start")} label={isLees ? "Leesvaardigheid" : "Zelf oefenen"} />
 
       <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
         {isLees
