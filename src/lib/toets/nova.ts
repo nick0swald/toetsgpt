@@ -304,22 +304,13 @@ export const PARA_ALIAS: Record<string, string[]> = {
   "gt4-10-1": ["kracht-soorten", "kracht-zwaarte"],
 };
 
-export function seriesForKlas(klas: string, leerjaar = ""): NovaSeries {
-  if (leerjaar === "4") return "gt4";
-  if (leerjaar === "3") return "gt3";
-  if (leerjaar === "2") return "kgt12";
-  if (klas === "4GT" || klas === "3HGL") return "gt4";
-  if (klas === "3.5G" || klas === "3.6G") return "gt3";
-  if (klas === "2.5G" || klas === "2.6G") return "kgt12";
-  if (klas.startsWith("4")) return "gt4";
-  if (klas.startsWith("3")) return "gt3";
-  return "kgt12";
+/** Tijdelijk: alle klassen/jaren → Nova 3GT deel A (test met één PDF). */
+export function seriesForKlas(_klas: string, _leerjaar = ""): NovaSeries {
+  return "gt3";
 }
 
-export function boekVoor(klas: string, leerjaar = ""): string {
-  const key = seriesForKlas(klas, leerjaar);
-  if (key === "gt3") return "Nova Nask 1, 3 VMBO-GT deel A · H1–H4 geladen";
-  return SERIES[key].boek;
+export function boekVoor(_klas: string, _leerjaar = ""): string {
+  return "Nova Nask 1, 3 VMBO-GT deel A · H1–H4";
 }
 
 export function hoofdstukHeeftBoek(id: string | undefined): boolean {
@@ -342,15 +333,12 @@ function toHoofdstuk(series: NovaSeries, jaar: Leerjaar, ch: NovaChapter): Packe
   };
 }
 
+/** Tijdelijk: alleen geladen hoofdstukken (3GT H1–H4). */
 export function novaHoofdstukken(): PackedHoofdstuk[] {
-  return (Object.keys(SERIES) as NovaSeries[]).flatMap((key) => {
-    const s = SERIES[key];
-    return s.chapters.map((ch) => toHoofdstuk(key, s.jaar, ch));
-  });
+  const s = SERIES.gt3;
+  return s.chapters.filter((ch) => ch.n <= 4).map((ch) => toHoofdstuk("gt3", s.jaar, ch));
 }
 
-export function novaHoofdstukkenVoor(klas: string, leerjaar = ""): PackedHoofdstuk[] {
-  const key = seriesForKlas(klas, leerjaar);
-  const s = SERIES[key];
-  return s.chapters.map((ch) => toHoofdstuk(key, s.jaar, ch));
+export function novaHoofdstukkenVoor(_klas: string, _leerjaar = ""): PackedHoofdstuk[] {
+  return novaHoofdstukken();
 }

@@ -32,8 +32,8 @@ const NASK: Vak = {
   id: "nask",
   titel: "NaSk",
   status: "live",
-  boek: "Nova NaSk",
-  bronLabel: "Nova 3GT deel A geladen (H1–H4). Rest volgt.",
+  boek: "Nova 3GT deel A (alle klassen)",
+  bronLabel: "Test: alleen Nova 3GT deel A (H1–H4) voor alle klassen/jaren.",
   hoofdstukken: novaHoofdstukken(),
 };
 
