@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { bewaarBriefje, briefjeVan } from "@/lib/toets/briefje";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { briefjeVan } from "@/lib/toets/briefje";
+import {
+  downloadDocx,
+  downloadTekst,
+  mailVolledigeToets,
+  toetsBestandsnaam,
+  volledigeToetsTekst,
+} from "@/lib/toets/export-toets";
 import { bouwOefentoets } from "@/lib/toets/demo";
 import { nlCijfer } from "@/lib/toets/format";
 import { generateToets } from "@/lib/toets/generate";
@@ -13,6 +22,8 @@ export function ResultsScreen() {
   const [busy, setBusy] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
   const [bewaarHint, setBewaarHint] = useState<string | null>(null);
+  const [bewaarOpen, setBewaarOpen] = useState(false);
+  const [mailNaar, setMailNaar] = useState("");
   const uitslag = state.uitslag;
   const toets = state.toets;
   if (!uitslag || !toets) return null;
@@ -92,21 +103,44 @@ export function ResultsScreen() {
     }
   }
 
-  async function bewaren() {
-    setFout(null);
-    try {
-      const hoe = await bewaarBriefje(briefje);
-      setBewaarHint(
-        hoe === "gedeeld"
-          ? "Briefje gedeeld. Laad het later in bij Zelf oefenen."
-          : "Briefje bewaard. Laad het later in bij Zelf oefenen.",
-      );
-    } catch {
-      setFout("Bewaren lukte niet. Probeer opnieuw.");
-    }
+  const wie = [state.naam.trim(), state.klas].filter(Boolean).join(" · ");
+
+  function toetsTekst() {
+    return volledigeToetsTekst(huidige, uitslag, briefje, wie);
   }
 
-  const wie = [state.naam.trim(), state.klas].filter(Boolean).join(" · ");
+  function opslaanTxt() {
+    setFout(null);
+    downloadTekst(toetsBestandsnaam(huidige, "txt"), toetsTekst());
+    setBewaarHint("Tekstbestand bewaard. Hele toets, antwoorden en punten.");
+  }
+
+  function opslaanDocx() {
+    setFout(null);
+    downloadDocx(toetsBestandsnaam(huidige, "docx"), toetsTekst());
+    setBewaarHint("Word-bestand bewaard. Hele toets, antwoorden en punten.");
+  }
+
+  async function mailen() {
+    setFout(null);
+    try {
+      const hoe = await mailVolledigeToets({
+        naar: mailNaar,
+        onderwerp: `ToetsGPT · ${huidige.title || "Oefentoets"}`,
+        tekst: toetsTekst(),
+        txtNaam: toetsBestandsnaam(huidige, "txt"),
+      });
+      setBewaarHint(
+        hoe === "gedeeld"
+          ? "Deelvenster open. Kies Mail en stuur de toets mee."
+          : hoe === "geknipt"
+            ? "Mail geopend. Lange toets staat op het klembord en in het txt-bestand — plak of voeg toe."
+            : "Mail geopend met de volledige toets.",
+      );
+    } catch {
+      setFout("Mailen lukte niet. Sla de toets op als txt of Word.");
+    }
+  }
 
   return (
     <main className="flex flex-col">
@@ -159,7 +193,7 @@ export function ResultsScreen() {
           </ul>
         ) : null}
         <p className="mt-3 text-xs leading-relaxed text-subtle">
-          Bewaar dit briefje. Later inladen bij Zelf oefenen, dan oefen je verder op dezelfde stof.
+          Bewaar de hele toets met antwoorden en punten. Het txt-bestand kun je later ook inladen bij Zelf oefenen.
         </p>
       </section>
 
@@ -226,9 +260,38 @@ export function ResultsScreen() {
         >
           {busy ? "Nieuwe toets maken…" : "Opnieuw, zelfde stof"}
         </Button>
-        <Button type="button" variant="secondary" size="lg" onClick={() => void bewaren()}>
-          Bewaar oefenbriefje
-        </Button>
+        {bewaarOpen ? (
+          <div className="grid gap-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-border)]">
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Hele toets, antwoorden en punten. Mail naar jezelf of iemand anders, of sla op.
+            </p>
+            <div className="grid gap-1.5">
+              <Label htmlFor="mail-naar">Mail naar</Label>
+              <Input
+                id="mail-naar"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="naam@school.nl"
+                value={mailNaar}
+                onChange={(e) => setMailNaar(e.target.value)}
+              />
+            </div>
+            <Button type="button" size="lg" onClick={() => void mailen()}>
+              Mail de toets
+            </Button>
+            <Button type="button" variant="secondary" size="lg" onClick={opslaanTxt}>
+              Opslaan als txt
+            </Button>
+            <Button type="button" variant="secondary" size="lg" onClick={opslaanDocx}>
+              Opslaan als Word
+            </Button>
+          </div>
+        ) : (
+          <Button type="button" variant="secondary" size="lg" onClick={() => setBewaarOpen(true)}>
+            Bewaar oefenbriefje
+          </Button>
+        )}
         <Button type="button" variant="secondary" size="lg" onClick={resetKeepStudent}>
           Andere stof
         </Button>
