@@ -4,6 +4,9 @@ import type { Letter, OpenQuestion, Question, StofTag, Toets } from "./types";
 
 const NAMEN = ["Lina", "Amir", "Tess", "Joost", "Noor", "Sem", "Daan", "Esmee"] as const;
 
+/** Zet true pas nadat Nick figuren OK heeft gegeven. */
+export const SHOW_KLAS_FIGUREN = false;
+
 export const KLAS_TOPICS = [
   { id: "h10-p1", hoofdstukId: "h10", label: "H10 §1 Soorten krachten" },
   { id: "h10-p2", hoofdstukId: "h10", label: "H10 §2 Krachten in constructies" },
@@ -407,7 +410,7 @@ function neemMix(items: Question[], n: number, rng: Rng): Question[] {
   return out;
 }
 
-/** Tijdelijke klasoefening H10 + H14 (~10 vragen). Origineel, met figuren. */
+/** Tijdelijke klasoefening H10 + H14 (~10 vragen). Origineel; figuren uit tot Nick OK. */
 export function bouwKlasOefening(opts: {
   niveau: string;
   seed?: number;
@@ -442,7 +445,17 @@ export function bouwKlasOefening(opts: {
   const questions = balanceMcLetters(
     shuffled(picked, rng)
       .slice(0, count)
-      .map((q, i) => ({ ...q, id: `klas${i + 1}` })),
+      .map((q, i) => {
+        const next = { ...q, id: `klas${i + 1}` };
+        if (!SHOW_KLAS_FIGUREN) {
+          const { figuurId: _f, figuurBijschrift: _b, ...rest } = next as typeof next & {
+            figuurId?: string;
+            figuurBijschrift?: string;
+          };
+          return rest;
+        }
+        return next;
+      }),
     rng,
   );
 

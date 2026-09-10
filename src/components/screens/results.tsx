@@ -548,7 +548,20 @@ export function ResultsScreen() {
           type="button"
           variant="secondary"
           size="lg"
-          onClick={() => go(isKlasOefen ? "klas" : isExamenOefen && /examen/i.test(huidige.bron.topic) ? "examen" : "vandaag")}
+          onClick={() => {
+            if (isKlasOefen) {
+              startToets(
+                bouwKlasOefening({
+                  niveau: String(huidige.bron.niveau || "GT"),
+                  seed: Date.now() % 1_000_000,
+                  focusTopicIds: klasReparatieFocus.length ? klasReparatieFocus : undefined,
+                  count: 7,
+                }),
+              );
+              return;
+            }
+            go(isExamenOefen && /examen/i.test(huidige.bron.topic) ? "examen" : "vandaag");
+          }}
         >
           Nog een ronde
         </Button>
