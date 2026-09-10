@@ -342,53 +342,47 @@ export function KatrolVast() {
 
 /** 13. Takel met 2 strengen (vaste + bewegende katrol), doorlopend touw, MA≈2. */
 export function Takel2() {
-  // Nick: 2 strengen boven de last PARALLEL (verticaal); vloeiend naar vaste katrol; Ftrek rechts omlaag.
+  // Schoolmodel: anker + vaste katrol dicht bij elkaar BOVEN de bewegende.
+  // 2 parallelle verticale strengen; rechter streng gaat vloeiend over vast → Ftrek.
+  // Geen knikken, geen trapjes.
   return (
     <>
-      <line x1="36" y1="22" x2="244" y2="22" {...stroke} />
-      {/* anker = top of left parallel strand */}
-      <circle cx="86" cy="22" r="3" fill="#111" />
-      {/* bewegende katrol, r=14, centrum (100,110) — left rim 86, right rim 114 */}
-      <circle cx="100" cy="110" r="14" {...stroke} />
-      <circle cx="100" cy="110" r="3" fill="#111" />
-      {/* vaste katrol dichterbij rechts, r=15 */}
-      <line x1="170" y1="22" x2="170" y2="32" {...stroke} />
-      <circle cx="170" cy="47" r="15" {...stroke} />
-      <circle cx="170" cy="47" r="3.5" fill="#111" />
-      {/*
-        Touw:
-        1) anker (86,22) verticaal omlaag → (86,110) links van bewegend
-        2) onder bewegend (boog) → (114,110)
-        3) verticaal omhoog parallel → (114,32)  [tweede streng || eerste]
-        4) kort naar vaste katrol links (155,47)
-        5) over vaste (boog) → (185,47) → Ftrek omlaag
-      */}
+      <line x1="50" y1="20" x2="230" y2="20" {...stroke} />
+      <circle cx="118" cy="20" r="3" fill="#111" />
+      {/* vaste katrol: centrum (146,34), r=14 — links=132, rechts=160 */}
+      <circle cx="146" cy="34" r="14" {...stroke} />
+      <circle cx="146" cy="34" r="3" fill="#111" />
+      {/* bewegende: centrum (132,112), r=14 — links=118, rechts=146 (= parallel) */}
+      <circle cx="132" cy="112" r="14" {...stroke} />
+      <circle cx="132" cy="112" r="3" fill="#111" />
+      {/* anker↓ → onder bewegend → ↑ parallel tot links van vast → over vast → Ftrek↓ */}
       <path
-        d="M86 22 L86 110 A14 14 0 0 0 114 110 L114 32 L155 47 A15 15 0 0 1 185 47 L185 148"
+        d="M118 20 L118 112 A14 14 0 0 0 146 112 L146 20 A14 14 0 0 1 160 34 L160 148"
         {...stroke}
       />
-      {/* last */}
-      <line x1="100" y1="124" x2="100" y2="132" {...stroke} />
-      <rect x="80" y="132" width="40" height="18" {...stroke} />
-      <text x="88" y="145" fontSize="11" fill="#111">
+      <line x1="132" y1="126" x2="132" y2="134" {...stroke} />
+      <rect x="112" y="134" width="40" height="18" {...stroke} />
+      <text x="120" y="147" fontSize="11" fill="#111">
         last
       </text>
-      <Tip x={185} y={148} dir="down" />
-      <text x="192" y="142" fontSize="12" fill="#111">
+      <Tip x={160} y={148} dir="down" />
+      <text x="168" y="130" fontSize="12" fill="#111">
         Ftrek
       </text>
-      <text x="48" y="90" fontSize="11" fill="#111">
+      <text x="52" y="116" fontSize="11" fill="#111">
         bewegend
       </text>
-      <text x="190" y="52" fontSize="11" fill="#111">
+      <text x="168" y="38" fontSize="11" fill="#111">
         vast
       </text>
-      <text x="108" y="154" fontSize="11" fill="#111">
+      <text x="70" y="154" fontSize="11" fill="#111">
         2 strengen
       </text>
     </>
   );
 }
+
+
 
 
 
