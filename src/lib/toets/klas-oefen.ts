@@ -5,7 +5,7 @@ import type { Letter, OpenQuestion, Question, StofTag, Toets } from "./types";
 const NAMEN = ["Lina", "Amir", "Tess", "Joost", "Noor", "Sem", "Daan", "Esmee"] as const;
 
 /** Zet true pas nadat Nick figuren OK heeft gegeven. */
-export const SHOW_KLAS_FIGUREN = false;
+export const SHOW_KLAS_FIGUREN = true;
 
 export const KLAS_TOPICS = [
   { id: "h10-p1", hoofdstukId: "h10", label: "H10 §1 Soorten krachten" },
