@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { FileText, PencilLine } from "lucide-react";
+import { FileText, GraduationCap, PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,6 +102,16 @@ export function StartScreen() {
           grow
           onClick={() => !naamFout && go("briefje")}
         />
+        {!isLees ? (
+          <Ingang
+            icon={<GraduationCap className="size-6" strokeWidth={2} />}
+            title="Oefenen voor het examen"
+            body="Jaar 4 · CE-stijl, timer, score per onderdeel."
+            variant="secondary"
+            grow
+            onClick={() => !naamFout && go("examen")}
+          />
+        ) : null}
         <p className="mt-auto pt-4 text-center text-xs leading-relaxed text-subtle">
           Ares058 VMBO Leeuwarden · toetsgpt.nl
           <br />
