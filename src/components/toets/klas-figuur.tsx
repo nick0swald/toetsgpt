@@ -342,44 +342,58 @@ export function KatrolVast() {
 
 /** 13. Takel met 2 strengen (vaste + bewegende katrol), doorlopend touw, MA≈2. */
 export function Takel2() {
+  // Correcte takel (MA≈2): anker → onder bewegende katrol → omhoog → over vaste katrol → Ftrek omlaag.
+  // Twee evenwijdige strengen tussen vast en bewegend; bogen met r = katrolstraal (geen onmogelijke arcs).
   return (
     <>
-      <line x1="50" y1="20" x2="210" y2="20" {...stroke} />
-      <line x1="140" y1="20" x2="140" y2="34" {...stroke} />
-      {/* vaste katrol boven */}
-      <circle cx="140" cy="50" r="16" {...stroke} />
-      <circle cx="140" cy="50" r="3.5" fill="#111" />
-      {/* bewegende katrol onder */}
-      <circle cx="140" cy="108" r="14" {...stroke} />
-      <circle cx="140" cy="108" r="3" fill="#111" />
-      {/* anker aan plafond/huis van vaste katrol */}
-      <line x1="110" y1="20" x2="110" y2="36" {...stroke} />
-      {/* doorlopend touw: anker → onder bewegende → over vaste → vrij trekeinde */}
+      {/* plafond */}
+      <line x1="40" y1="18" x2="220" y2="18" {...stroke} />
+      {/* ophanging vaste katrol */}
+      <line x1="140" y1="18" x2="140" y2="32" {...stroke} />
+      {/* vaste katrol (boven), r=16, centrum (140,48) */}
+      <circle cx="140" cy="48" r="16" {...stroke} />
+      <circle cx="140" cy="48" r="3.5" fill="#111" />
+      {/* bewegende katrol (onder), r=14, centrum (140,112) */}
+      <circle cx="140" cy="112" r="14" {...stroke} />
+      <circle cx="140" cy="112" r="3" fill="#111" />
+      {/* ankerpunt touw aan plafond (links van vaste katrol) */}
+      <line x1="100" y1="18" x2="100" y2="28" {...stroke} />
+      <circle cx="100" cy="18" r="2.5" fill="#111" />
+      {/*
+        Touw:
+        1) anker (100,28) → links van bewegende katrol (126,112)
+        2) halve cirkel ONDER bewegende (126→154, r=14)
+        3) omhoog naar rechts van vaste katrol (156,48)
+        4) halve cirkel BOVEN vaste (156→124, r=16)
+        5) vrij eind omlaag (124,148) = Ftrek
+      */}
       <path
-        d="M110 36 V108 A14 14 0 0 0 154 108 V50 A16 16 0 0 0 124 50 V148"
+        d="M100 28 L126 112 A14 14 0 0 0 154 112 L156 48 A16 16 0 0 0 124 48 L124 148"
         {...stroke}
       />
-      <line x1="140" y1="122" x2="140" y2="132" {...stroke} />
-      <rect x="120" y="132" width="40" height="20" {...stroke} />
-      <text x="128" y="146" fontSize="11" fill="#111">
+      {/* last hangt onder bewegende katrol */}
+      <line x1="140" y1="126" x2="140" y2="134" {...stroke} />
+      <rect x="120" y="134" width="40" height="18" {...stroke} />
+      <text x="128" y="147" fontSize="11" fill="#111">
         last
       </text>
       <Tip x={124} y={148} dir="down" />
-      <text x="48" y="152" fontSize="12" fill="#111">
+      <text x="52" y="152" fontSize="12" fill="#111">
         Ftrek
       </text>
-      <text x="190" y="54" fontSize="11" fill="#111">
+      <text x="188" y="52" fontSize="11" fill="#111">
         vast
       </text>
-      <text x="178" y="112" fontSize="11" fill="#111">
+      <text x="178" y="116" fontSize="11" fill="#111">
         bewegend
       </text>
-      <text x="200" y="148" fontSize="11" fill="#111">
-        MA≈2
+      <text x="188" y="148" fontSize="11" fill="#111">
+        2 strengen
       </text>
     </>
   );
 }
+
 
 /** 14. Zelfde F↓ op klein A (hoge p) vs groot A (lage p). */
 export function DrukOppervlakKlas() {
