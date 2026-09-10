@@ -635,35 +635,70 @@ function isWarmup(q: Question): boolean {
   return /eenheid|formule|voorvoegsel|newton|m\/s|km\/h/.test(blob);
 }
 
-/** Korte dagstart: 3 eenheden/formules, daarna hoofdstuk of mix. */
+/** Korte dagstart: warm-up + mix; met geheugen: meer pijnpunten, paar wins. */
 export function bouwVandaag(opts: {
   leerjaar: string;
   niveau: string;
   hoofdstukId?: string;
   seed?: number;
+  /** paragraafIds die lastig waren (on-device diagnose) */
+  lastigParagraafIds?: string[];
+  /** paragraafIds die al goed gingen */
+  winParagraafIds?: string[];
+  lastig?: string;
 }): Toets {
   const count = 8;
   const rng = mulberry32(opts.seed ?? Date.now() % 1_000_000);
   const nask = bank(rng).filter((q) => !q.stof?.hoofdstukId.startsWith("bio-"));
-  const warm = shuffled(nask.filter(isWarmup), rng).slice(0, 3);
+  const lastigIds = new Set(opts.lastigParagraafIds ?? []);
+  const winIds = new Set(opts.winParagraafIds ?? []);
+  const hasDiag = lastigIds.size > 0 || winIds.size > 0;
+
+  const warmN = hasDiag ? 2 : 3;
+  const warm = shuffled(nask.filter(isWarmup), rng).slice(0, warmN);
   const used = new Set(warm.map((q) => q.id));
+  const picked = [...warm];
+
+  const matchIds = (ids: Set<string>) =>
+    shuffled(
+      nask.filter((q) => q.stof && ids.has(q.stof.paragraafId) && !used.has(q.id)),
+      rng,
+    );
+
+  // Prefer pain points (~4), then wins (~2), then chapter/mix fill
+  for (const q of matchIds(lastigIds)) {
+    if (picked.length >= count - (winIds.size ? 2 : 0)) break;
+    picked.push(q);
+    used.add(q.id);
+  }
+  for (const q of matchIds(winIds)) {
+    if (picked.length >= count) break;
+    picked.push(q);
+    used.add(q.id);
+  }
+
   let restBron = nask.filter((q) => !used.has(q.id));
   if (opts.hoofdstukId) {
     const tagged = restBron.filter((q) => q.stof && q.stof.hoofdstukId === opts.hoofdstukId);
     if (tagged.length) restBron = tagged;
   }
-  const rest = shuffled(restBron, rng);
-  const picked = [...warm];
-  for (const q of rest) {
-    if (picked.length >= count) break;
-    if (!picked.includes(q)) picked.push(q);
+  if (opts.lastig?.trim()) {
+    restBron = rankLaag(restBron, opts.lastig, rng);
+  } else {
+    restBron = shuffled(restBron, rng);
   }
+  for (const q of restBron) {
+    if (picked.length >= count) break;
+    picked.push(q);
+    used.add(q.id);
+  }
+
   const questions = balanceMcLetters(
     picked.slice(0, count).map((q, i) => ({ ...q, id: `q${i + 1}` })),
     rng,
   );
   const h = hoofdstukById(opts.hoofdstukId ?? "", "nask");
-  const titel = h ? `Vandaag · ${h.titel}` : "Vandaag oefenen";
+  const titel = h ? `Korte oefening · ${h.titel}` : "Korte oefening";
   return {
     title: titel,
     subject: "NaSk",
@@ -675,6 +710,7 @@ export function bouwVandaag(opts: {
       soort: "mix",
       tijd: "kort",
       hoofdstukId: opts.hoofdstukId || undefined,
+      lastig: opts.lastig || undefined,
       leerjaar: opts.leerjaar,
       niveau: opts.niveau,
       vakId: "nask",
