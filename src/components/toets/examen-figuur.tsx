@@ -1,5 +1,6 @@
 /** Eenvoudige CE-achtige figuren (origineel, zwart op wit). */
 import type { ReactNode } from "react";
+import { KLAS_FIGUREN } from "./klas-figuur";
 
 const stroke = {
   fill: "none",
@@ -83,29 +84,6 @@ function CircuitParallel() {
   );
 }
 
-function KrachtDoos() {
-  return (
-    <>
-      <rect x="100" y="70" width="80" height="50" {...stroke} />
-      {/* Fz omlaag */}
-      <line x1="140" y1="95" x2="140" y2="145" {...stroke} strokeWidth={2} />
-      <polyline points="134,136 140,146 146,136" {...stroke} />
-      <text x="148" y="140" fontSize="12" fill="#111">
-        Fz
-      </text>
-      {/* Fn omhoog */}
-      <line x1="140" y1="95" x2="140" y2="40" {...stroke} strokeWidth={2} />
-      <polyline points="134,50 140,40 146,50" {...stroke} />
-      <text x="148" y="52" fontSize="12" fill="#111">
-        Fn
-      </text>
-      <line x1="70" y1="120" x2="210" y2="120" {...stroke} />
-      <text x="74" y="148" fontSize="11" fill="#111">
-        tafel
-      </text>
-    </>
-  );
-}
 
 function StSchets() {
   return (
@@ -179,153 +157,30 @@ function ThermometerIsolatie() {
 }
 
 
-function KrachtVectoren() {
-  return (
-    <>
-      {/* ondergrond */}
-      <line x1="50" y1="120" x2="230" y2="120" {...stroke} />
-      {/* doos / voorwerp; CoM in het midden */}
-      <rect x="110" y="70" width="60" height="50" {...stroke} />
-      <circle cx="140" cy="95" r="2.5" fill="#111" />
-      {/* Fz vanaf zwaartepunt omlaag */}
-      <line x1="140" y1="95" x2="140" y2="148" {...stroke} strokeWidth={2} />
-      <polyline points="134,139 140,149 146,139" {...stroke} />
-      <text x="148" y="145" fontSize="12" fill="#111">
-        Fz
-      </text>
-      {/* Fn vanaf steunvlak omhoog */}
-      <line x1="140" y1="120" x2="140" y2="42" {...stroke} strokeWidth={2} />
-      <polyline points="134,52 140,42 146,52" {...stroke} />
-      <text x="148" y="54" fontSize="12" fill="#111">
-        Fn
-      </text>
-    </>
-  );
-}
+/** Oude ids blijven werken; wijzen naar gecorrigeerde bank-figuren. */
+const LEGACY_ALIASES: Record<string, string> = {
+  "kracht-vectoren": "fbd-tafel",
+  "kracht-doos": "fbd-tafel",
+  "hefboom-moment": "hefboom-evenwicht",
+  "katrol-takel": "takel-2",
+};
 
-function HefboomMoment() {
-  return (
-    <>
-      {/* balk; arm = loodrechte afstand tot werklijn (hier horizontaal bij verticale F) */}
-      <line x1="30" y1="80" x2="250" y2="80" {...stroke} strokeWidth={2.2} />
-      {/* draaipunt P */}
-      <polygon points="140,80 130,110 150,110" {...stroke} fill="#fff" />
-      <text x="134" y="128" fontSize="12" fill="#111">
-        P
-      </text>
-      {/* F1 omlaag links */}
-      <line x1="60" y1="80" x2="60" y2="130" {...stroke} strokeWidth={2} />
-      <polyline points="54,121 60,131 66,121" {...stroke} />
-      <text x="44" y="148" fontSize="12" fill="#111">
-        F1
-      </text>
-      {/* arm1 */}
-      <line x1="60" y1="70" x2="140" y2="70" {...stroke} strokeDasharray="3 2" />
-      <text x="88" y="64" fontSize="11" fill="#111">
-        arm1
-      </text>
-      {/* F2 omlaag rechts */}
-      <line x1="220" y1="80" x2="220" y2="130" {...stroke} strokeWidth={2} />
-      <polyline points="214,121 220,131 226,121" {...stroke} />
-      <text x="204" y="148" fontSize="12" fill="#111">
-        F2
-      </text>
-      <line x1="140" y1="70" x2="220" y2="70" {...stroke} strokeDasharray="3 2" />
-      <text x="166" y="64" fontSize="11" fill="#111">
-        arm2
-      </text>
-    </>
-  );
-}
-
-function KatrolTakel() {
-  return (
-    <>
-      {/* plafond / steun */}
-      <line x1="40" y1="22" x2="200" y2="22" {...stroke} />
-      <line x1="120" y1="22" x2="120" y2="36" {...stroke} />
-      {/* vaste katrol (boven) */}
-      <circle cx="120" cy="52" r="16" {...stroke} />
-      <circle cx="120" cy="52" r="3.5" fill="#111" />
-      {/* bewegende katrol (onder) */}
-      <circle cx="120" cy="108" r="14" {...stroke} />
-      <circle cx="120" cy="108" r="3" fill="#111" />
-      {/* doorlopende kabel: vast aan plafond → onder bewegende → over vaste → vrije trekeinde */}
-      <path
-        d="M70 22 V108 A14 14 0 0 0 134 108 V52 A16 16 0 0 0 104 52 V148"
-        {...stroke}
-      />
-      {/* last onder bewegende katrol */}
-      <line x1="120" y1="122" x2="120" y2="132" {...stroke} />
-      <rect x="100" y="132" width="40" height="20" {...stroke} />
-      <text x="108" y="146" fontSize="11" fill="#111">
-        last
-      </text>
-      {/* Ftrek aan vrije eind */}
-      <polyline points="98,140 104,150 110,140" {...stroke} />
-      <text x="48" y="152" fontSize="12" fill="#111">
-        Ftrek
-      </text>
-      <text x="190" y="70" fontSize="11" fill="#111">
-        vast
-      </text>
-      <text x="190" y="112" fontSize="11" fill="#111">
-        bewegend
-      </text>
-    </>
-  );
-}
-
-function DrukOppervlak() {
-  return (
-    <>
-      {/* klein oppervlak — F wijst OMLAAG op het steunvlak */}
-      <line x1="70" y1="36" x2="70" y2="86" {...stroke} strokeWidth={2} />
-      <polyline points="64,76 70,88 76,76" {...stroke} />
-      <text x="78" y="52" fontSize="12" fill="#111">
-        F
-      </text>
-      <rect x="55" y="90" width="30" height="14" {...stroke} fill="#eee" />
-      <line x1="40" y1="104" x2="100" y2="104" {...stroke} />
-      <text x="42" y="124" fontSize="11" fill="#111">
-        klein A
-      </text>
-      <text x="48" y="140" fontSize="11" fill="#111">
-        hoge p
-      </text>
-      {/* groot oppervlak — F wijst OMLAAG op het steunvlak */}
-      <line x1="200" y1="36" x2="200" y2="86" {...stroke} strokeWidth={2} />
-      <polyline points="194,76 200,88 206,76" {...stroke} />
-      <text x="208" y="52" fontSize="12" fill="#111">
-        F
-      </text>
-      <rect x="150" y="90" width="100" height="14" {...stroke} fill="#f5f5f5" />
-      <line x1="140" y1="104" x2="260" y2="104" {...stroke} />
-      <text x="168" y="124" fontSize="11" fill="#111">
-        groot A
-      </text>
-      <text x="170" y="140" fontSize="11" fill="#111">
-        lage p
-      </text>
-    </>
-  );
-}
-
-const FIGUREN: Record<string, { label: string; node: () => ReactNode }> = {
+const EXAMEN_ONLY: Record<string, { label: string; node: () => ReactNode }> = {
   "circuit-serie": { label: "Serieschakeling", node: CircuitSerie },
   "circuit-parallel": { label: "Parallelschakeling", node: CircuitParallel },
-  "kracht-doos": { label: "Krachten op een doos", node: KrachtDoos },
   "st-schets": { label: "(s,t)-diagram", node: StSchets },
   "dichtheid-blokken": { label: "Drijven en zinken", node: DichtheidBlokken },
   "thermometer-isolatie": { label: "Isolatie en temperatuur", node: ThermometerIsolatie },
-  "kracht-vectoren": { label: "Krachtenvectoren", node: KrachtVectoren },
-  "hefboom-moment": { label: "Hefboom en moment", node: HefboomMoment },
-  "katrol-takel": { label: "Katrol en takel", node: KatrolTakel },
-  "druk-oppervlak": { label: "Druk en oppervlak", node: DrukOppervlak },
+};
+
+const FIGUREN: Record<string, { label: string; node: () => ReactNode }> = {
+  ...EXAMEN_ONLY,
+  ...KLAS_FIGUREN,
 };
 
 export function ExamenFiguur({ id, bijschrift }: { id: string; bijschrift?: string }) {
-  const fig = FIGUREN[id];
+  const resolved = LEGACY_ALIASES[id] ?? id;
+  const fig = FIGUREN[resolved] ?? FIGUREN[id];
   if (!fig) return null;
   const Node = fig.node;
   return (
