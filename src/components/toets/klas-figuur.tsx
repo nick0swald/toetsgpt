@@ -342,57 +342,58 @@ export function KatrolVast() {
 
 /** 13. Takel met 2 strengen (vaste + bewegende katrol), doorlopend touw, MA≈2. */
 export function Takel2() {
-  // Correcte takel (MA≈2): anker → onder bewegende katrol → omhoog → over vaste katrol → Ftrek omlaag.
-  // Twee evenwijdige strengen tussen vast en bewegend; bogen met r = katrolstraal (geen onmogelijke arcs).
+  // Nick-schets: anker links → onder bewegende (links) → over vaste (rechts) → Ftrek rechts omlaag.
+  // Twee verticale strengen boven de bewegende katrol; MA≈2.
   return (
     <>
       {/* plafond */}
-      <line x1="40" y1="18" x2="220" y2="18" {...stroke} />
-      {/* ophanging vaste katrol */}
-      <line x1="140" y1="18" x2="140" y2="32" {...stroke} />
-      {/* vaste katrol (boven), r=16, centrum (140,48) */}
-      <circle cx="140" cy="48" r="16" {...stroke} />
-      <circle cx="140" cy="48" r="3.5" fill="#111" />
-      {/* bewegende katrol (onder), r=14, centrum (140,112) */}
-      <circle cx="140" cy="112" r="14" {...stroke} />
-      <circle cx="140" cy="112" r="3" fill="#111" />
-      {/* ankerpunt touw aan plafond (links van vaste katrol) */}
-      <line x1="100" y1="18" x2="100" y2="28" {...stroke} />
-      <circle cx="100" cy="18" r="2.5" fill="#111" />
+      <line x1="30" y1="22" x2="250" y2="22" {...stroke} />
+      {/* anker links */}
+      <circle cx="48" cy="22" r="3" fill="#111" />
+      {/* bewegende katrol links-onder, r=14, centrum (90,105) */}
+      <circle cx="90" cy="105" r="14" {...stroke} />
+      <circle cx="90" cy="105" r="3" fill="#111" />
+      {/* vaste katrol rechts-boven, r=16, centrum (190,48) */}
+      <line x1="190" y1="22" x2="190" y2="32" {...stroke} />
+      <circle cx="190" cy="48" r="16" {...stroke} />
+      <circle cx="190" cy="48" r="3.5" fill="#111" />
       {/*
-        Touw:
-        1) anker (100,28) → links van bewegende katrol (126,112)
-        2) halve cirkel ONDER bewegende (126→154, r=14)
-        3) omhoog naar rechts van vaste katrol (156,48)
-        4) halve cirkel BOVEN vaste (156→124, r=16)
-        5) vrij eind omlaag (124,148) = Ftrek
+        Touw (blauw in schets):
+        anker (48,22) → links van bewegend (76,105) → onder bewegend naar (104,105)
+        → omhoog parallel (104,32) → naar vaste katrol links (174,48)
+        → over vaste (boog) naar (206,48) → Ftrek omlaag
+        Tweede streng: van anker-pad… eigenlijk twee strengen = links anker-verticaal + rechts omhoog.
+        Schets: anker→down under movable, up to fixed, over, down right.
+        Left vertical: anker down to left of movable.
+        Right vertical of the two supporting strands: from right of movable up toward fixed.
       */}
       <path
-        d="M100 28 L126 112 A14 14 0 0 0 154 112 L156 48 A16 16 0 0 0 124 48 L124 148"
+        d="M48 22 L76 105 A14 14 0 0 0 104 105 L104 48 L174 48 A16 16 0 0 1 206 48 L206 148"
         {...stroke}
       />
-      {/* last hangt onder bewegende katrol */}
-      <line x1="140" y1="126" x2="140" y2="134" {...stroke} />
-      <rect x="120" y="134" width="40" height="18" {...stroke} />
-      <text x="128" y="147" fontSize="11" fill="#111">
+      {/* last onder bewegende katrol */}
+      <line x1="90" y1="119" x2="90" y2="128" {...stroke} />
+      <rect x="70" y="128" width="40" height="18" {...stroke} />
+      <text x="78" y="141" fontSize="11" fill="#111">
         last
       </text>
-      <Tip x={124} y={148} dir="down" />
-      <text x="52" y="152" fontSize="12" fill="#111">
+      <Tip x={206} y={148} dir="down" />
+      <text x="214" y="142" fontSize="12" fill="#111">
         Ftrek
       </text>
-      <text x="188" y="52" fontSize="11" fill="#111">
-        vast
-      </text>
-      <text x="178" y="116" fontSize="11" fill="#111">
+      <text x="58" y="78" fontSize="11" fill="#111">
         bewegend
       </text>
-      <text x="188" y="148" fontSize="11" fill="#111">
+      <text x="212" y="52" fontSize="11" fill="#111">
+        vast
+      </text>
+      <text x="120" y="152" fontSize="11" fill="#111">
         2 strengen
       </text>
     </>
   );
 }
+
 
 
 /** 14. Zelfde F↓ op klein A (hoge p) vs groot A (lage p). */
