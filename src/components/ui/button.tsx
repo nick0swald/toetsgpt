@@ -13,6 +13,7 @@ const buttonVariants = cva(
         ghost: "bg-transparent text-muted-foreground hover:text-foreground",
         outline: "bg-transparent text-foreground ring-1 ring-border hover:ring-primary",
         danger: "bg-destructive text-primary-foreground hover:opacity-90",
+        exam: "bg-exam text-exam-foreground hover:opacity-90",
       },
       size: {
         md: "h-12 whitespace-nowrap rounded-full px-5 text-sm",

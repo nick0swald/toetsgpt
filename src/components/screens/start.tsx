@@ -107,7 +107,7 @@ export function StartScreen() {
             icon={<GraduationCap className="size-6" strokeWidth={2} />}
             title="Oefenen voor het examen"
             body="Jaar 4 · CE-stijl, timer, score per onderdeel."
-            variant="secondary"
+            variant="exam"
             grow
             onClick={() => !naamFout && go("examen")}
           />
@@ -133,7 +133,7 @@ function Ingang({
   icon: ReactNode;
   title: string;
   body: string;
-  variant: "primary" | "secondary" | "outline";
+  variant: "primary" | "secondary" | "outline" | "exam";
   grow?: boolean;
   onClick: () => void;
 }) {
