@@ -10,7 +10,10 @@ import {
   toetsBestandsnaam,
   volledigeToetsTekst,
 } from "@/lib/toets/export-toets";
-import { bouwOefentoets } from "@/lib/toets/demo";
+import { bouwOefentoets, bouwVandaag } from "@/lib/toets/demo";
+import { bouwExamenOefening } from "@/lib/toets/examen-oefen";
+import { onderdeelLabel } from "@/lib/toets/examenstof";
+import { lastigTekst, leesDiagnoseGeheugen, pijnpunten } from "@/lib/toets/diagnose-geheugen";
 import { nlCijfer } from "@/lib/toets/format";
 import { generateToets } from "@/lib/toets/generate";
 import { useSession } from "@/lib/toets/session";
@@ -32,6 +35,28 @@ export function ResultsScreen() {
   const heeftStof = diagnose.perStof.length > 0;
   const lastig = diagnose.lastig;
   const briefje = briefjeVan(huidige, uitslag);
+  const isExamenOefen =
+    /examen/i.test(huidige.title) ||
+    /examen/i.test(huidige.bron.topic) ||
+    huidige.questions.some((q) => q.stof?.hoofdstukId.startsWith("ce-"));
+  const perOnderdeel = (() => {
+    if (!isExamenOefen) return [] as { id: string; label: string; behaald: number; totaal: number }[];
+    const map = new Map<string, { id: string; label: string; behaald: number; totaal: number }>();
+    for (const s of diagnose.perStof) {
+      const id = s.tag.hoofdstukId;
+      const cur = map.get(id) ?? {
+        id,
+        label: onderdeelLabel(id),
+        behaald: 0,
+        totaal: 0,
+      };
+      cur.behaald += s.behaald;
+      cur.totaal += s.totaal;
+      map.set(id, cur);
+    }
+    return [...map.values()];
+  })();
+
 
   async function maken(mode: "regen" | "extra") {
     setFout(null);
@@ -160,6 +185,33 @@ export function ResultsScreen() {
         <p className="mt-3 text-sm text-muted-foreground">Oefenscore. Geen echt cijfer.</p>
         <p className="mt-1 text-xs text-subtle">Lineair 1–10, cesuur 55%.</p>
       </div>
+
+      {isExamenOefen && perOnderdeel.length > 0 ? (
+        <section className="mt-6 rounded-2xl bg-card p-4 shadow-[var(--shadow-border)]">
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-subtle">
+            Per examenonderdeel
+          </p>
+          <ul className="mt-4 grid gap-2">
+            {perOnderdeel.map((s) => {
+              const pct = s.totaal > 0 ? s.behaald / s.totaal : 0;
+              const zwak = pct < 0.55;
+              return (
+                <li key={s.id} className="flex items-baseline justify-between gap-3">
+                  <span className="min-w-0 text-sm leading-snug text-foreground">{s.label}</span>
+                  <span
+                    className={cn(
+                      "text-sm tabular-nums",
+                      zwak ? "text-destructive" : "text-ok",
+                    )}
+                  >
+                    {formatPunten(s.behaald)}/{formatPunten(s.totaal)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="mt-6 rounded-2xl bg-card p-4 shadow-[var(--shadow-border)]">
         <p className="text-xs font-medium uppercase tracking-[0.12em] text-subtle">
@@ -292,9 +344,37 @@ export function ResultsScreen() {
             Bewaar oefenbriefje
           </Button>
         )}
-        <Button type="button" variant="secondary" size="lg" onClick={() => go("vandaag")}>
+        <Button
+          type="button"
+          variant="secondary"
+          size="lg"
+          onClick={() => go(isExamenOefen && /examen/i.test(huidige.bron.topic) ? "examen" : "vandaag")}
+        >
           Nog een ronde
         </Button>
+        {isExamenOefen ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            onClick={() => {
+              const g = leesDiagnoseGeheugen();
+              const lastig = lastigTekst(g);
+              const zwak = pijnpunten(g, 5);
+              startToets(
+                bouwVandaag({
+                  leerjaar: "4",
+                  niveau: String(huidige.bron.niveau || "GT"),
+                  seed: Date.now() % 1_000_000,
+                  lastigParagraafIds: zwak.map((s) => s.paragraafId),
+                  lastig: lastig || undefined,
+                }),
+              );
+            }}
+          >
+            Oefen op maat
+          </Button>
+        ) : null}
         <Button type="button" variant="secondary" size="lg" onClick={resetKeepStudent}>
           Andere stof
         </Button>

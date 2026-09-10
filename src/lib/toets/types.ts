@@ -42,6 +42,9 @@ type VraagBasis = {
   stof?: StofTag;
   /** stof = rekenen/kennis; lees = vaktekst lezen */
   skill?: "stof" | "lees";
+  /** Optionele CE-stijl figuur (SVG-id). */
+  figuurId?: string;
+  figuurBijschrift?: string;
 };
 
 export type McQuestion = VraagBasis & {
@@ -114,4 +117,4 @@ export type ToetsUitslag = {
   diagnose: Diagnose;
 };
 
-export type Screen = "start" | "vandaag" | "zelf" | "briefje" | "docent" | "exam" | "results" | "overzicht";
+export type Screen = "start" | "vandaag" | "zelf" | "briefje" | "docent" | "exam" | "results" | "overzicht" | "examen";

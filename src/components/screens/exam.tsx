@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { duurMinuten, formatTijd } from "@/lib/toets/format";
 import { useSession } from "@/lib/toets/session";
 import type { InvulQuestion, Letter, McQuestion, OpenQuestion } from "@/lib/toets/types";
+import { ExamenFiguur } from "@/components/toets/examen-figuur";
 import { cn } from "@/lib/utils";
 
 export function ExamScreen() {
@@ -42,8 +43,13 @@ export function ExamScreen() {
       <header className="flex items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-subtle">
-            {toets.subject}
+            {toets.title.toLowerCase().includes("examen")
+              ? "Centraal examen · oefenen"
+              : toets.subject}
             {toets.bron.kind === "extra" ? " · extra" : ""}
+            {toets.bron.tijd === "20" && toets.title.toLowerCase().includes("examen")
+              ? " · 20 min"
+              : ""}
           </p>
           <p className="mt-0.5 font-serif text-lg font-medium tracking-tight text-foreground">
             {toets.title}
@@ -83,6 +89,10 @@ export function ExamScreen() {
         ) : (
           <p className="text-[1.05rem] leading-relaxed text-foreground text-pretty">{vraag.situation}</p>
         )}
+
+        {vraag.figuurId ? (
+          <ExamenFiguur id={vraag.figuurId} bijschrift={vraag.figuurBijschrift} />
+        ) : null}
 
         {vraag.type === "invul" ? (
           <>
