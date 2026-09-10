@@ -10,10 +10,9 @@ import {
   toetsBestandsnaam,
   volledigeToetsTekst,
 } from "@/lib/toets/export-toets";
-import { bouwOefentoets, bouwVandaag } from "@/lib/toets/demo";
+import { bouwOefentoets } from "@/lib/toets/demo";
 import { bouwExamenOefening } from "@/lib/toets/examen-oefen";
 import { onderdeelLabel } from "@/lib/toets/examenstof";
-import { lastigTekst, leesDiagnoseGeheugen, pijnpunten } from "@/lib/toets/diagnose-geheugen";
 import { nlCijfer } from "@/lib/toets/format";
 import { generateToets } from "@/lib/toets/generate";
 import { useSession } from "@/lib/toets/session";
@@ -56,7 +55,17 @@ export function ResultsScreen() {
     }
     return [...map.values()];
   })();
-
+  const metPct = perOnderdeel
+    .filter((s) => s.totaal > 0)
+    .map((s) => ({ ...s, pct: s.behaald / s.totaal }));
+  const zwakkeIds = metPct.filter((s) => s.pct < 0.55).map((s) => s.id);
+  const reparatieFocus =
+    zwakkeIds.length > 0
+      ? zwakkeIds
+      : [...metPct]
+          .sort((a, b) => a.pct - b.pct)
+          .slice(0, Math.min(2, metPct.length))
+          .map((s) => s.id);
 
   async function maken(mode: "regen" | "extra") {
     setFout(null);
@@ -355,24 +364,19 @@ export function ResultsScreen() {
         {isExamenOefen ? (
           <Button
             type="button"
-            variant="secondary"
+            variant={zwakkeIds.length > 0 ? "primary" : "secondary"}
             size="lg"
             onClick={() => {
-              const g = leesDiagnoseGeheugen();
-              const lastig = lastigTekst(g);
-              const zwak = pijnpunten(g, 5);
               startToets(
-                bouwVandaag({
-                  leerjaar: "4",
+                bouwExamenOefening({
                   niveau: String(huidige.bron.niveau || "GT"),
                   seed: Date.now() % 1_000_000,
-                  lastigParagraafIds: zwak.map((s) => s.paragraafId),
-                  lastig: lastig || undefined,
+                  ...(reparatieFocus.length ? { focusOnderdeelIds: reparatieFocus } : {}),
                 }),
               );
             }}
           >
-            Oefen op maat
+            Reparatieronde
           </Button>
         ) : null}
         <Button type="button" variant="secondary" size="lg" onClick={resetKeepStudent}>
