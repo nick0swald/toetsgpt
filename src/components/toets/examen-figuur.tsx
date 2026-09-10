@@ -178,6 +178,137 @@ function ThermometerIsolatie() {
   );
 }
 
+
+function KrachtVectoren() {
+  return (
+    <>
+      <rect x="110" y="60" width="60" height="45" {...stroke} />
+      {/* Fz omlaag */}
+      <line x1="140" y1="82" x2="140" y2="140" {...stroke} strokeWidth={2} />
+      <polyline points="134,131 140,141 146,131" {...stroke} />
+      <text x="148" y="136" fontSize="12" fill="#111">
+        Fz
+      </text>
+      {/* Fn omhoog */}
+      <line x1="140" y1="82" x2="140" y2="28" {...stroke} strokeWidth={2} />
+      <polyline points="134,38 140,28 146,38" {...stroke} />
+      <text x="148" y="40" fontSize="12" fill="#111">
+        Fn
+      </text>
+      {/* Fs schuin */}
+      <line x1="140" y1="82" x2="210" y2="50" {...stroke} strokeWidth={2} />
+      <polyline points="198,48 210,50 202,60" {...stroke} />
+      <text x="214" y="48" fontSize="12" fill="#111">
+        Fs
+      </text>
+      <line x1="60" y1="105" x2="220" y2="105" {...stroke} />
+    </>
+  );
+}
+
+function HefboomMoment() {
+  return (
+    <>
+      {/* balk */}
+      <line x1="30" y1="80" x2="250" y2="80" {...stroke} strokeWidth={2.2} />
+      {/* draaipunt P */}
+      <polygon points="140,80 130,110 150,110" {...stroke} fill="#fff" />
+      <text x="134" y="128" fontSize="12" fill="#111">
+        P
+      </text>
+      {/* F1 omlaag links */}
+      <line x1="60" y1="80" x2="60" y2="130" {...stroke} strokeWidth={2} />
+      <polyline points="54,121 60,131 66,121" {...stroke} />
+      <text x="44" y="148" fontSize="12" fill="#111">
+        F1
+      </text>
+      {/* arm1 */}
+      <line x1="60" y1="70" x2="140" y2="70" {...stroke} strokeDasharray="3 2" />
+      <text x="88" y="64" fontSize="11" fill="#111">
+        arm1
+      </text>
+      {/* F2 omlaag rechts */}
+      <line x1="220" y1="80" x2="220" y2="130" {...stroke} strokeWidth={2} />
+      <polyline points="214,121 220,131 226,121" {...stroke} />
+      <text x="204" y="148" fontSize="12" fill="#111">
+        F2
+      </text>
+      <line x1="140" y1="70" x2="220" y2="70" {...stroke} strokeDasharray="3 2" />
+      <text x="166" y="64" fontSize="11" fill="#111">
+        arm2
+      </text>
+    </>
+  );
+}
+
+function KatrolTakel() {
+  return (
+    <>
+      {/* steun */}
+      <line x1="40" y1="28" x2="180" y2="28" {...stroke} />
+      {/* vaste katrol */}
+      <circle cx="110" cy="55" r="18" {...stroke} />
+      <circle cx="110" cy="55" r="4" fill="#111" />
+      {/* kabel */}
+      <path d="M92 55 V120" {...stroke} />
+      <path d="M128 55 V90" {...stroke} />
+      {/* bewegende katrol */}
+      <circle cx="128" cy="108" r="14" {...stroke} />
+      <circle cx="128" cy="108" r="3" fill="#111" />
+      <path d="M114 108 H100 V130 H156 V108 H142" {...stroke} />
+      {/* last */}
+      <rect x="108" y="130" width="40" height="22" {...stroke} />
+      <text x="116" y="145" fontSize="11" fill="#111">
+        last
+      </text>
+      {/* trek */}
+      <line x1="92" y1="120" x2="92" y2="148" {...stroke} strokeWidth={2} />
+      <polyline points="86,140 92,150 98,140" {...stroke} />
+      <text x="48" y="152" fontSize="12" fill="#111">
+        Ftrek
+      </text>
+      <text x="190" y="80" fontSize="12" fill="#111">
+        takel
+      </text>
+    </>
+  );
+}
+
+function DrukOppervlak() {
+  return (
+    <>
+      {/* klein oppervlak */}
+      <line x1="70" y1="40" x2="70" y2="90" {...stroke} strokeWidth={2} />
+      <polyline points="64,48 70,40 76,48" {...stroke} />
+      <text x="48" y="32" fontSize="12" fill="#111">
+        F
+      </text>
+      <rect x="55" y="90" width="30" height="14" {...stroke} fill="#eee" />
+      <line x1="40" y1="104" x2="100" y2="104" {...stroke} />
+      <text x="42" y="124" fontSize="11" fill="#111">
+        klein A
+      </text>
+      <text x="48" y="140" fontSize="11" fill="#111">
+        hoge p
+      </text>
+      {/* groot oppervlak */}
+      <line x1="200" y1="40" x2="200" y2="90" {...stroke} strokeWidth={2} />
+      <polyline points="194,48 200,40 206,48" {...stroke} />
+      <text x="178" y="32" fontSize="12" fill="#111">
+        F
+      </text>
+      <rect x="150" y="90" width="100" height="14" {...stroke} fill="#f5f5f5" />
+      <line x1="140" y1="104" x2="260" y2="104" {...stroke} />
+      <text x="168" y="124" fontSize="11" fill="#111">
+        groot A
+      </text>
+      <text x="170" y="140" fontSize="11" fill="#111">
+        lage p
+      </text>
+    </>
+  );
+}
+
 const FIGUREN: Record<string, { label: string; node: () => ReactNode }> = {
   "circuit-serie": { label: "Serieschakeling", node: CircuitSerie },
   "circuit-parallel": { label: "Parallelschakeling", node: CircuitParallel },
@@ -185,6 +316,10 @@ const FIGUREN: Record<string, { label: string; node: () => ReactNode }> = {
   "st-schets": { label: "(s,t)-diagram", node: StSchets },
   "dichtheid-blokken": { label: "Drijven en zinken", node: DichtheidBlokken },
   "thermometer-isolatie": { label: "Isolatie en temperatuur", node: ThermometerIsolatie },
+  "kracht-vectoren": { label: "Krachtenvectoren", node: KrachtVectoren },
+  "hefboom-moment": { label: "Hefboom en moment", node: HefboomMoment },
+  "katrol-takel": { label: "Katrol en takel", node: KatrolTakel },
+  "druk-oppervlak": { label: "Druk en oppervlak", node: DrukOppervlak },
 };
 
 export function ExamenFiguur({ id, bijschrift }: { id: string; bijschrift?: string }) {

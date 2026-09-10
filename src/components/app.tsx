@@ -6,6 +6,7 @@ import { OverzichtScreen } from "./screens/overzicht";
 import { ResultsScreen } from "./screens/results";
 import { StartScreen } from "./screens/start";
 import { ExamenScreen } from "./screens/examen";
+import { KlasScreen } from "./screens/klas";
 import { VandaagScreen } from "./screens/vandaag";
 import { BriefjeScreen } from "./screens/briefje";
 import { ZelfScreen } from "./screens/zelf";
@@ -59,6 +60,7 @@ function Shell() {
   else if (state.screen === "docent") screen = <DocentScreen />;
   else if (state.screen === "exam") screen = <ExamScreen />;
   else if (state.screen === "examen") screen = <ExamenScreen />;
+  else if (state.screen === "klas") screen = <KlasScreen />;
   else if (state.screen === "results") screen = <ResultsScreen />;
   else if (state.screen === "overzicht") screen = <OverzichtScreen />;
 

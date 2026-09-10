@@ -19,6 +19,7 @@ import {
 } from "@/lib/toets/huiswerk";
 import { bouwOefentoets } from "@/lib/toets/demo";
 import { bouwExamenOefening } from "@/lib/toets/examen-oefen";
+import { bouwKlasOefening, klasTopicLabel } from "@/lib/toets/klas-oefen";
 import { onderdeelLabel } from "@/lib/toets/examenstof";
 import { nlCijfer } from "@/lib/toets/format";
 import { generateToets } from "@/lib/toets/generate";
@@ -49,6 +50,10 @@ export function ResultsScreen() {
     /examen/i.test(huidige.title) ||
     /examen/i.test(huidige.bron.topic) ||
     huidige.questions.some((q) => q.stof?.hoofdstukId.startsWith("ce-"));
+  const isKlasOefen =
+    /H10|H14|klas oefenen|reparatie h10/i.test(huidige.title) ||
+    /H10|H14|klas oefenen|reparatie h10/i.test(huidige.bron.topic) ||
+    huidige.questions.some((q) => q.stof?.hoofdstukId === "h10" || q.stof?.hoofdstukId === "h14");
   const perOnderdeel = (() => {
     if (!isExamenOefen) return [] as { id: string; label: string; behaald: number; totaal: number }[];
     const map = new Map<string, { id: string; label: string; behaald: number; totaal: number }>();
@@ -76,6 +81,25 @@ export function ResultsScreen() {
       : [...metPct]
           .sort((a, b) => a.pct - b.pct)
           .slice(0, Math.min(2, metPct.length))
+          .map((s) => s.id);
+
+  const klasScores = isKlasOefen
+    ? diagnose.perStof.map((s) => ({
+        id: s.tag.paragraafId,
+        label: s.tag.label || klasTopicLabel(s.tag.paragraafId),
+        behaald: s.behaald,
+        totaal: s.totaal,
+        pct: s.totaal > 0 ? s.behaald / s.totaal : 0,
+      }))
+    : [];
+  const klasGoed = klasScores.filter((s) => s.pct >= 0.55);
+  const klasNogNiet = klasScores.filter((s) => s.pct < 0.55);
+  const klasReparatieFocus =
+    klasNogNiet.length > 0
+      ? klasNogNiet.map((s) => s.id)
+      : [...klasScores]
+          .sort((a, b) => a.pct - b.pct)
+          .slice(0, Math.min(2, klasScores.length))
           .map((s) => s.id);
 
   async function maken(mode: "regen" | "extra") {
@@ -187,6 +211,43 @@ export function ResultsScreen() {
     }
   }
 
+  function downloadAandachtspunt() {
+    const naamSlug = (state.naam.trim() || "leerling")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 24);
+    const datum = new Date().toLocaleDateString("nl-NL", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    const goed = klasGoed.length
+      ? klasGoed.map((s) => `- ${s.label} (${formatPunten(s.behaald)}/${formatPunten(s.totaal)})`).join("\n")
+      : "- (nog geen onderdelen boven de cesuur)";
+    const oefen = klasNogNiet.length
+      ? klasNogNiet.map((s) => `- ${s.label} (${formatPunten(s.behaald)}/${formatPunten(s.totaal)})`).join("\n")
+      : "- (alles ging al redelijk — blijf herhalen)";
+    const tekst = [
+      "ToetsGPT · Aandachtspunt H10 & H14",
+      "",
+      `Naam: ${state.naam.trim() || "—"}`,
+      `Datum: ${datum}`,
+      `Score: ${formatPunten(uitslag.behaald)} / ${formatPunten(uitslag.totaal)} (oefenscore ${nlCijfer(uitslag.cijfer)})`,
+      "",
+      "Dit ging goed:",
+      goed,
+      "",
+      "Hier nog oefenen:",
+      oefen,
+      "",
+      "Oefenscore. Geen officieel cijfer.",
+      "",
+    ].join("\n");
+    downloadTekst(`toetsgpt-aandacht-H10-H14-${naamSlug}.txt`, tekst);
+    setBewaarHint("Aandachtspunt gedownload.");
+  }
+
   return (
     <main className="flex flex-col">
       <p className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">Uitslag</p>
@@ -230,6 +291,49 @@ export function ResultsScreen() {
               );
             })}
           </ul>
+        </section>
+      ) : null}
+
+      {isKlasOefen && klasScores.length > 0 ? (
+        <section className="mt-6 rounded-2xl bg-card p-4 shadow-[var(--shadow-border)]">
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-subtle">
+            H10 & H14 · diagnose
+          </p>
+          {klasGoed.length > 0 ? (
+            <div className="mt-4">
+              <p className="text-sm font-extrabold text-ok">Dit ging al</p>
+              <ul className="mt-2 grid gap-1.5">
+                {klasGoed.map((s) => (
+                  <li key={s.id} className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="min-w-0 text-foreground">{s.label}</span>
+                    <span className="tabular-nums text-ok">
+                      {formatPunten(s.behaald)}/{formatPunten(s.totaal)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {klasNogNiet.length > 0 ? (
+            <div className="mt-4">
+              <p className="text-sm font-extrabold text-destructive">Dit nog niet</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Extra aandacht: {klasNogNiet.map((s) => s.label).join(", ")}.
+              </p>
+              <ul className="mt-2 grid gap-1.5">
+                {klasNogNiet.map((s) => (
+                  <li key={s.id} className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="min-w-0 text-foreground">{s.label}</span>
+                    <span className="tabular-nums text-destructive">
+                      {formatPunten(s.behaald)}/{formatPunten(s.totaal)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-ok">Alles ging al redelijk. Blijf herhalen.</p>
+          )}
         </section>
       ) : null}
 
@@ -319,20 +423,38 @@ export function ResultsScreen() {
       {sessieHint ? <p className="mt-4 text-center text-sm text-muted-foreground">{sessieHint}</p> : null}
 
       <div className="mt-6 grid gap-3">
-        {heeftStof && lastig.length > 0 ? (
+        {heeftStof && lastig.length > 0 && !isKlasOefen ? (
           <Button type="button" size="lg" onClick={() => void maken("extra")} disabled={busy}>
             {busy ? "Extra oefening maken…" : "Oefen extra op lastige stof"}
           </Button>
         ) : null}
-        <Button
-          type="button"
-          variant={heeftStof && lastig.length > 0 ? "secondary" : "primary"}
-          size="lg"
-          onClick={() => void maken("regen")}
-          disabled={busy}
-        >
-          {busy ? "Nieuwe toets maken…" : "Opnieuw, zelfde stof"}
-        </Button>
+        {!isKlasOefen ? (
+          <Button
+            type="button"
+            variant={heeftStof && lastig.length > 0 ? "secondary" : "primary"}
+            size="lg"
+            onClick={() => void maken("regen")}
+            disabled={busy}
+          >
+            {busy ? "Nieuwe toets maken…" : "Opnieuw, zelfde stof"}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            onClick={() => {
+              startToets(
+                bouwKlasOefening({
+                  niveau: String(huidige.bron.niveau || "GT"),
+                  seed: Date.now() % 1_000_000,
+                }),
+              );
+            }}
+          >
+            Opnieuw, H10 & H14
+          </Button>
+        )}
         {isHuiswerkModusBeschikbaar() ? (
           <div className="grid gap-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-border)]">
             <div className="flex items-center justify-between gap-3">
@@ -426,10 +548,34 @@ export function ResultsScreen() {
           type="button"
           variant="secondary"
           size="lg"
-          onClick={() => go(isExamenOefen && /examen/i.test(huidige.bron.topic) ? "examen" : "vandaag")}
+          onClick={() => go(isKlasOefen ? "klas" : isExamenOefen && /examen/i.test(huidige.bron.topic) ? "examen" : "vandaag")}
         >
           Nog een ronde
         </Button>
+        {isKlasOefen ? (
+          <>
+            <Button
+              type="button"
+              variant="klas"
+              size="lg"
+              onClick={() => {
+                startToets(
+                  bouwKlasOefening({
+                    niveau: String(huidige.bron.niveau || "GT"),
+                    seed: Date.now() % 1_000_000,
+                    focusTopicIds: klasReparatieFocus.length ? klasReparatieFocus : undefined,
+                    count: 7,
+                  }),
+                );
+              }}
+            >
+              Reparatie / verdieping op maat
+            </Button>
+            <Button type="button" variant="secondary" size="lg" onClick={downloadAandachtspunt}>
+              Download aandachtspunt
+            </Button>
+          </>
+        ) : null}
         {isExamenOefen ? (
           <Button
             type="button"

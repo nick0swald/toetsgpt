@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { FileText, GraduationCap, PencilLine } from "lucide-react";
+import { BookOpen, FileText, GraduationCap, PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,9 @@ import { cn } from "@/lib/utils";
 
 const START_VAKKEN = VAKKEN.filter((v) => v.id === "nask" || v.id === "lees");
 const HUISWERK_UI = isHuiswerkModusBeschikbaar();
+
+/** Zet op false / verwijder knop wanneer de klastoets voorbij is. */
+export const TIJDELIJKE_KLAS_OEFEN = true;
 
 export function StartScreen() {
   const { state, setNaam, setVakId, go } = useSession();
@@ -50,6 +53,17 @@ export function StartScreen() {
           />
           {naamFout ? <p className="text-sm text-destructive">Alleen letters.</p> : null}
         </div>
+
+
+        {TIJDELIJKE_KLAS_OEFEN && !isLees ? (
+          <Ingang
+            icon={<BookOpen className="size-6" strokeWidth={2} />}
+            title="Oefenen H10 & H14"
+            body="Krachten en werktuigen. Voor 4GT en 3HGL. Met plaatjes."
+            variant="klas"
+            onClick={() => !naamFout && go("klas")}
+          />
+        ) : null}
 
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-subtle">Vak</p>
@@ -175,7 +189,7 @@ function Ingang({
   icon: ReactNode;
   title: string;
   body: string;
-  variant: "primary" | "secondary" | "outline" | "exam";
+  variant: "primary" | "secondary" | "outline" | "exam" | "klas";
   grow?: boolean;
   onClick: () => void;
 }) {
