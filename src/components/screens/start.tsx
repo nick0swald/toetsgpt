@@ -60,7 +60,7 @@ export function StartScreen() {
           <Ingang
             icon={<BookOpen className="size-6" strokeWidth={2} />}
             title="Oefenen H10 & H14"
-            body="Krachten en werktuigen · 4GT. Met plaatjes."
+            body="Krachten en werktuigen · 4GT."
             variant="klas"
             onClick={() => {
               if (naamFout) return;
