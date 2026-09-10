@@ -8,6 +8,7 @@ import {
 } from "react";
 import { DEFAULT_VAK_ID } from "./stof";
 import { gradeToets } from "./scoring";
+import { slaDiagnoseOp } from "./diagnose-geheugen";
 import { rapporteerOefening } from "./stats";
 import type { Screen, Toets, ToetsUitslag } from "./types";
 
@@ -124,6 +125,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         lastig: row.totaal > 0 && row.behaald / row.totaal < 0.55,
         cijferBucket: bucket,
       }));
+      try {
+        slaDiagnoseOp({
+          diagnose: uitslag.diagnose,
+          bron: s.toets.bron,
+          leerjaar: s.toets.bron.leerjaar,
+          niveau: s.toets.bron.niveau,
+          hoofdstukId: s.toets.bron.hoofdstukId,
+          vakId,
+        });
+      } catch {
+        /* localStorage mag falen */
+      }
       if (klas && events.length > 0) {
         void rapporteerOefening({ data: { events } }).catch(() => undefined);
       }

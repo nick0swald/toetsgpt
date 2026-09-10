@@ -18,7 +18,7 @@ import type { McQuestion, Question, StofScore } from "@/lib/toets/types";
 import { cn } from "@/lib/utils";
 
 export function ResultsScreen() {
-  const { state, startToets, home, resetKeepStudent } = useSession();
+  const { state, startToets, home, resetKeepStudent, go } = useSession();
   const [busy, setBusy] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
   const [bewaarHint, setBewaarHint] = useState<string | null>(null);
@@ -292,6 +292,9 @@ export function ResultsScreen() {
             Bewaar oefenbriefje
           </Button>
         )}
+        <Button type="button" variant="secondary" size="lg" onClick={() => go("vandaag")}>
+          Nog een ronde
+        </Button>
         <Button type="button" variant="secondary" size="lg" onClick={resetKeepStudent}>
           Andere stof
         </Button>

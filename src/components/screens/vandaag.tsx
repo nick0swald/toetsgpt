@@ -1,5 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { bouwVandaag } from "@/lib/toets/demo";
+import {
+  diagnoseZin,
+  lastigTekst,
+  leesDiagnoseGeheugen,
+  pijnpunten,
+  wins,
+} from "@/lib/toets/diagnose-geheugen";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/toets/session";
 import { hoofdstukById, hoofdstukkenVoor, parseKlas } from "@/lib/toets/stof";
@@ -10,9 +17,26 @@ import { FieldSelect, TopBar } from "./zelf";
 export function VandaagScreen() {
   const { state, go, startToets, setVakId } = useSession();
   const fromKlas = parseKlas(state.klas);
-  const [leerjaar, setLeerjaar] = useState<Leerjaar | "">(fromKlas.leerjaar);
-  const [niveau, setNiveau] = useState<Niveau | "">(fromKlas.niveau);
-  const [hoofdstukId, setHoofdstukId] = useState("");
+  const geheugen = useMemo(() => leesDiagnoseGeheugen(), []);
+  const zin = useMemo(() => diagnoseZin(geheugen), [geheugen]);
+
+  const [leerjaar, setLeerjaar] = useState<Leerjaar | "">(
+    (geheugen?.leerjaar as Leerjaar | undefined) || fromKlas.leerjaar,
+  );
+  const [niveau, setNiveau] = useState<Niveau | "">(
+    (geheugen?.niveau as Niveau | undefined) || fromKlas.niveau,
+  );
+  const [hoofdstukId, setHoofdstukId] = useState(geheugen?.hoofdstukId ?? "");
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    // re-read after mount (SSR-safe)
+    const g = leesDiagnoseGeheugen();
+    if (g?.leerjaar) setLeerjaar(g.leerjaar as Leerjaar);
+    if (g?.niveau) setNiveau(g.niveau as Niveau);
+    if (g?.hoofdstukId) setHoofdstukId(g.hoofdstukId);
+    setHydrated(true);
+  }, []);
 
   const hoofdstukken = useMemo(
     () => (leerjaar && niveau ? hoofdstukkenVoor(leerjaar, niveau, "nask", state.klas) : []),
@@ -20,16 +44,23 @@ export function VandaagScreen() {
   );
   const gekozen = hoofdstukById(hoofdstukId, "nask");
   const klaar = Boolean(leerjaar && niveau);
+  const liveZin = hydrated ? diagnoseZin(leesDiagnoseGeheugen()) || zin : zin;
 
   function start() {
     if (!leerjaar || !niveau) return;
     setVakId("nask");
+    const g = leesDiagnoseGeheugen();
+    const zwak = pijnpunten(g, 5);
+    const sterk = wins(g, 3);
     startToets(
       bouwVandaag({
         leerjaar,
         niveau,
         hoofdstukId: hoofdstukId || undefined,
         seed: Date.now() % 1_000_000,
+        lastigParagraafIds: zwak.map((s) => s.paragraafId),
+        winParagraafIds: sterk.map((s) => s.paragraafId),
+        lastig: lastigTekst(g) || undefined,
       }),
     );
   }
@@ -40,6 +71,15 @@ export function VandaagScreen() {
       <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
         Kies jaar en niveau. Hoofdstuk mag leeg. Acht vragen, ongeveer tien minuten.
       </p>
+
+      {liveZin ? (
+        <p
+          className="mt-4 rounded-2xl bg-card px-4 py-3 text-sm leading-relaxed text-foreground shadow-[var(--shadow-border)]"
+          role="status"
+        >
+          {liveZin}
+        </p>
+      ) : null}
 
       <section className="mt-6">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">Jaar</p>
@@ -89,13 +129,15 @@ export function VandaagScreen() {
         <p className="mt-1.5 text-xs text-subtle">
           {gekozen
             ? "Eerst eenheden en formules, daarna dit hoofdstuk."
-            : "Zonder hoofdstuk: eenheden, formules en een mix."}
+            : liveZin
+              ? "Volgende ronde volgt vooral wat nog lastig was, plus een paar die al lukten."
+              : "Zonder hoofdstuk: eenheden, formules en een mix."}
         </p>
       </div>
 
       <div className="mt-6">
         <Button type="button" size="lg" disabled={!klaar} onClick={start}>
-          Start
+          {liveZin ? "Nog een ronde" : "Start"}
         </Button>
       </div>
     </main>
