@@ -10,6 +10,7 @@ import {
   isHuiswerkModusBeschikbaar,
   setHuiswerkActief,
 } from "@/lib/toets/huiswerk";
+import { bouwKlasOefening } from "@/lib/toets/klas-oefen";
 import { useSession } from "@/lib/toets/session";
 import { VAKKEN } from "@/lib/toets/stof";
 import { cn } from "@/lib/utils";
@@ -21,7 +22,7 @@ const HUISWERK_UI = isHuiswerkModusBeschikbaar();
 export const TIJDELIJKE_KLAS_OEFEN = true;
 
 export function StartScreen() {
-  const { state, setNaam, setVakId, go } = useSession();
+  const { state, setNaam, setVakId, startToets, go } = useSession();
   const naamFout = state.naam.length > 0 && !naamOk(state.naam);
   const isLees = state.vakId === "lees";
   const [huiswerkAan, setHuiswerkAan] = useState(() => (HUISWERK_UI ? isHuiswerkActief() : false));
@@ -59,9 +60,13 @@ export function StartScreen() {
           <Ingang
             icon={<BookOpen className="size-6" strokeWidth={2} />}
             title="Oefenen H10 & H14"
-            body="Krachten en werktuigen. Voor 4GT en 3HGL. Met plaatjes."
+            body="Krachten en werktuigen · 4GT. Met plaatjes."
             variant="klas"
-            onClick={() => !naamFout && go("klas")}
+            onClick={() => {
+              if (naamFout) return;
+              setVakId("nask");
+              startToets(bouwKlasOefening({ niveau: "GT", seed: Date.now() % 1_000_000 }));
+            }}
           />
         ) : null}
 
