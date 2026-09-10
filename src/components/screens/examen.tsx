@@ -10,6 +10,7 @@ export function ExamenScreen() {
   const { go, startToets, setVakId } = useSession();
   const chips = useMemo(() => examenOnderdeelChips(), []);
   const [niveau, setNiveau] = useState<Niveau | "">("GT");
+  const [toonFocus, setToonFocus] = useState(false);
   const [focus, setFocus] = useState<string[]>([]);
 
   function toggle(id: string) {
@@ -19,11 +20,12 @@ export function ExamenScreen() {
   function start() {
     if (!niveau) return;
     setVakId("nask");
+    const focusIds = toonFocus && focus.length ? focus : undefined;
     startToets(
       bouwExamenOefening({
         niveau,
         seed: Date.now() % 1_000_000,
-        focusOnderdeelIds: focus.length ? focus : undefined,
+        ...(focusIds ? { focusOnderdeelIds: focusIds } : {}),
       }),
     );
   }
@@ -49,17 +51,25 @@ export function ExamenScreen() {
       </section>
 
       <section className="mt-5">
-        <p className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">
-          Focus CE-onderdelen
-        </p>
-        <p className="mt-1.5 text-xs text-subtle">Optioneel. Geen keuze = mix over het CE.</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {chips.map((c) => (
-            <Chip key={c.id} selected={focus.includes(c.id)} onClick={() => toggle(c.id)}>
-              {c.label}
-            </Chip>
-          ))}
-        </div>
+        <button
+          type="button"
+          onClick={() => setToonFocus((v) => !v)}
+          className="text-sm font-bold text-foreground"
+        >
+          {toonFocus ? "▾" : "▸"} Alleen bepaalde onderdelen
+        </button>
+        {toonFocus ? (
+          <>
+            <p className="mt-1.5 text-xs text-subtle">Optioneel. Geen keuze = mix over het CE.</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {chips.map((c) => (
+                <Chip key={c.id} selected={focus.includes(c.id)} onClick={() => toggle(c.id)}>
+                  {c.label}
+                </Chip>
+              ))}
+            </div>
+          </>
+        ) : null}
       </section>
 
       <div className="mt-6">
