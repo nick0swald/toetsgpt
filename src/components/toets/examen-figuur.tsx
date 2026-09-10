@@ -182,26 +182,23 @@ function ThermometerIsolatie() {
 function KrachtVectoren() {
   return (
     <>
-      <rect x="110" y="60" width="60" height="45" {...stroke} />
-      {/* Fz omlaag */}
-      <line x1="140" y1="82" x2="140" y2="140" {...stroke} strokeWidth={2} />
-      <polyline points="134,131 140,141 146,131" {...stroke} />
-      <text x="148" y="136" fontSize="12" fill="#111">
+      {/* ondergrond */}
+      <line x1="50" y1="120" x2="230" y2="120" {...stroke} />
+      {/* doos / voorwerp; CoM in het midden */}
+      <rect x="110" y="70" width="60" height="50" {...stroke} />
+      <circle cx="140" cy="95" r="2.5" fill="#111" />
+      {/* Fz vanaf zwaartepunt omlaag */}
+      <line x1="140" y1="95" x2="140" y2="148" {...stroke} strokeWidth={2} />
+      <polyline points="134,139 140,149 146,139" {...stroke} />
+      <text x="148" y="145" fontSize="12" fill="#111">
         Fz
       </text>
-      {/* Fn omhoog */}
-      <line x1="140" y1="82" x2="140" y2="28" {...stroke} strokeWidth={2} />
-      <polyline points="134,38 140,28 146,38" {...stroke} />
-      <text x="148" y="40" fontSize="12" fill="#111">
+      {/* Fn vanaf steunvlak omhoog */}
+      <line x1="140" y1="120" x2="140" y2="42" {...stroke} strokeWidth={2} />
+      <polyline points="134,52 140,42 146,52" {...stroke} />
+      <text x="148" y="54" fontSize="12" fill="#111">
         Fn
       </text>
-      {/* Fs schuin */}
-      <line x1="140" y1="82" x2="210" y2="50" {...stroke} strokeWidth={2} />
-      <polyline points="198,48 210,50 202,60" {...stroke} />
-      <text x="214" y="48" fontSize="12" fill="#111">
-        Fs
-      </text>
-      <line x1="60" y1="105" x2="220" y2="105" {...stroke} />
     </>
   );
 }
@@ -209,7 +206,7 @@ function KrachtVectoren() {
 function HefboomMoment() {
   return (
     <>
-      {/* balk */}
+      {/* balk; arm = loodrechte afstand tot werklijn (hier horizontaal bij verticale F) */}
       <line x1="30" y1="80" x2="250" y2="80" {...stroke} strokeWidth={2.2} />
       {/* draaipunt P */}
       <polygon points="140,80 130,110 150,110" {...stroke} fill="#fff" />
@@ -244,31 +241,36 @@ function HefboomMoment() {
 function KatrolTakel() {
   return (
     <>
-      {/* steun */}
-      <line x1="40" y1="28" x2="180" y2="28" {...stroke} />
-      {/* vaste katrol */}
-      <circle cx="110" cy="55" r="18" {...stroke} />
-      <circle cx="110" cy="55" r="4" fill="#111" />
-      {/* kabel */}
-      <path d="M92 55 V120" {...stroke} />
-      <path d="M128 55 V90" {...stroke} />
-      {/* bewegende katrol */}
-      <circle cx="128" cy="108" r="14" {...stroke} />
-      <circle cx="128" cy="108" r="3" fill="#111" />
-      <path d="M114 108 H100 V130 H156 V108 H142" {...stroke} />
-      {/* last */}
-      <rect x="108" y="130" width="40" height="22" {...stroke} />
-      <text x="116" y="145" fontSize="11" fill="#111">
+      {/* plafond / steun */}
+      <line x1="40" y1="22" x2="200" y2="22" {...stroke} />
+      <line x1="120" y1="22" x2="120" y2="36" {...stroke} />
+      {/* vaste katrol (boven) */}
+      <circle cx="120" cy="52" r="16" {...stroke} />
+      <circle cx="120" cy="52" r="3.5" fill="#111" />
+      {/* bewegende katrol (onder) */}
+      <circle cx="120" cy="108" r="14" {...stroke} />
+      <circle cx="120" cy="108" r="3" fill="#111" />
+      {/* doorlopende kabel: vast aan plafond → onder bewegende → over vaste → vrije trekeinde */}
+      <path
+        d="M70 22 V108 A14 14 0 0 0 134 108 V52 A16 16 0 0 0 104 52 V148"
+        {...stroke}
+      />
+      {/* last onder bewegende katrol */}
+      <line x1="120" y1="122" x2="120" y2="132" {...stroke} />
+      <rect x="100" y="132" width="40" height="20" {...stroke} />
+      <text x="108" y="146" fontSize="11" fill="#111">
         last
       </text>
-      {/* trek */}
-      <line x1="92" y1="120" x2="92" y2="148" {...stroke} strokeWidth={2} />
-      <polyline points="86,140 92,150 98,140" {...stroke} />
+      {/* Ftrek aan vrije eind */}
+      <polyline points="98,140 104,150 110,140" {...stroke} />
       <text x="48" y="152" fontSize="12" fill="#111">
         Ftrek
       </text>
-      <text x="190" y="80" fontSize="12" fill="#111">
-        takel
+      <text x="190" y="70" fontSize="11" fill="#111">
+        vast
+      </text>
+      <text x="190" y="112" fontSize="11" fill="#111">
+        bewegend
       </text>
     </>
   );
@@ -277,10 +279,10 @@ function KatrolTakel() {
 function DrukOppervlak() {
   return (
     <>
-      {/* klein oppervlak */}
-      <line x1="70" y1="40" x2="70" y2="90" {...stroke} strokeWidth={2} />
-      <polyline points="64,48 70,40 76,48" {...stroke} />
-      <text x="48" y="32" fontSize="12" fill="#111">
+      {/* klein oppervlak — F wijst OMLAAG op het steunvlak */}
+      <line x1="70" y1="36" x2="70" y2="86" {...stroke} strokeWidth={2} />
+      <polyline points="64,76 70,88 76,76" {...stroke} />
+      <text x="78" y="52" fontSize="12" fill="#111">
         F
       </text>
       <rect x="55" y="90" width="30" height="14" {...stroke} fill="#eee" />
@@ -291,10 +293,10 @@ function DrukOppervlak() {
       <text x="48" y="140" fontSize="11" fill="#111">
         hoge p
       </text>
-      {/* groot oppervlak */}
-      <line x1="200" y1="40" x2="200" y2="90" {...stroke} strokeWidth={2} />
-      <polyline points="194,48 200,40 206,48" {...stroke} />
-      <text x="178" y="32" fontSize="12" fill="#111">
+      {/* groot oppervlak — F wijst OMLAAG op het steunvlak */}
+      <line x1="200" y1="36" x2="200" y2="86" {...stroke} strokeWidth={2} />
+      <polyline points="194,76 200,88 206,76" {...stroke} />
+      <text x="208" y="52" fontSize="12" fill="#111">
         F
       </text>
       <rect x="150" y="90" width="100" height="14" {...stroke} fill="#f5f5f5" />
