@@ -91,8 +91,8 @@ function buildPool(rng: Rng): Question[] {
       },
       slot,
     ),
-    figuurId: "kracht-vectoren",
-    figuurBijschrift: "Figuur — krachten op een tas (schets)",
+    figuurId: "fbd-hangend",
+    figuurBijschrift: "Figuur — Fs omhoog, Fz omlaag",
   };
 
   const qFz = openQ(
@@ -104,8 +104,8 @@ function buildPool(rng: Rng): Question[] {
     `Fz = m · g = ${m} · ${g} = ${fz} N.`,
     { numbers: [fz], tolerance: 0.5 },
     tag("h10-p1"),
-    "kracht-doos",
-    "Figuur — zwaartekracht op een voorwerp",
+    "fbd-tafel",
+    "Figuur — Fz en Fn op een blok",
   );
 
   const qMagneet = {
@@ -144,6 +144,8 @@ function buildPool(rng: Rng): Question[] {
       },
       slot,
     ),
+    figuurId: "trek-druk",
+    figuurBijschrift: "Figuur — trek vs druk in staven",
   };
 
   const qDriehoek = {
@@ -163,6 +165,8 @@ function buildPool(rng: Rng): Question[] {
       },
       slot,
     ),
+    figuurId: "constructie-driehoek",
+    figuurBijschrift: "Figuur — driehoek vs rechthoek",
   };
 
   const qSamen = openQ(
@@ -174,7 +178,7 @@ function buildPool(rng: Rng): Question[] {
     `In dezelfde richting: R = ${f1} + ${f2} = ${resZelfde} N.`,
     { numbers: [resZelfde], tolerance: 0.5 },
     tag("h10-p3"),
-    "kracht-vectoren",
+    "krachten-zelfde",
     "Figuur — krachten in dezelfde richting",
   );
 
@@ -195,7 +199,7 @@ function buildPool(rng: Rng): Question[] {
       },
       slot,
     ),
-    figuurId: "kracht-vectoren",
+    figuurId: "krachten-tegengesteld",
     figuurBijschrift: "Figuur — tegengestelde krachten",
   };
 
@@ -216,7 +220,7 @@ function buildPool(rng: Rng): Question[] {
       },
       slot,
     ),
-    figuurId: "kracht-vectoren",
+    figuurId: "ontbinden-schuin",
     figuurBijschrift: "Figuur — schuine kracht ontbinden",
   };
 
@@ -229,7 +233,7 @@ function buildPool(rng: Rng): Question[] {
     `Moment: F₁·arm₁ = F₂·arm₂ → F₂ = (${f1}·${nlGetal(arm1, 1)}) / ${nlGetal(arm2, 1)} = ${nlGetal(fEvenwicht, 1)} N.`,
     { numbers: [fEvenwicht], tolerance: Math.max(0.3, fEvenwicht * 0.08) },
     tag("h14-p1"),
-    "hefboom-moment",
+    "hefboom-evenwicht",
     "Figuur — hefboom met draaipunt P",
   );
 
@@ -250,8 +254,8 @@ function buildPool(rng: Rng): Question[] {
       },
       slot,
     ),
-    figuurId: "hefboom-moment",
-    figuurBijschrift: "Figuur — kracht en arm",
+    figuurId: "hefboom-proef",
+    figuurBijschrift: "Figuur — momentenproef met gewichten",
   };
 
   const qZwaartepunt = {
@@ -271,6 +275,8 @@ function buildPool(rng: Rng): Question[] {
       },
       slot,
     ),
+    figuurId: "zwaartepunt-balk",
+    figuurBijschrift: "Figuur — zwaartepunt Z en draaipunt P",
   };
 
   const qKatrol = openQ(
@@ -282,7 +288,7 @@ function buildPool(rng: Rng): Question[] {
     `Ideale takel: F_trek ≈ F_last / n = ${lastF} / ${takelN} = ${nlGetal(trekF, 1)} N.`,
     { numbers: [trekF], tolerance: Math.max(1, trekF * 0.1) },
     tag("h14-p3"),
-    "katrol-takel",
+    "takel-2",
     "Figuur — eenvoudige takel",
   );
 
@@ -303,8 +309,8 @@ function buildPool(rng: Rng): Question[] {
       },
       slot,
     ),
-    figuurId: "katrol-takel",
-    figuurBijschrift: "Figuur — katrol / takel",
+    figuurId: "takel-2",
+    figuurBijschrift: "Figuur — takel met 2 strengen",
   };
 
   const qDruk = openQ(
