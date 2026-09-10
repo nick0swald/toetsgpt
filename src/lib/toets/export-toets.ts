@@ -6,7 +6,7 @@ function punten(n: number): string {
   return Number.isInteger(n) ? String(n) : String(n).replace(".", ",");
 }
 
-function juistVan(q: Question): string {
+export function juistAntwoord(q: Question): string {
   if (q.type === "mc") {
     const opt = q.options.find((o) => o.letter === q.correctLetter);
     return opt ? `${opt.letter}. ${opt.text}` : q.modelAnswer;
@@ -14,7 +14,7 @@ function juistVan(q: Question): string {
   return q.modelAnswer;
 }
 
-function gegevenVan(q: Question, given: string): string {
+export function gegevenAntwoord(q: Question, given: string): string {
   if (!given.trim()) return "Geen antwoord.";
   if (q.type === "mc") {
     const opt = q.options.find((o) => o.letter === given.toUpperCase());
@@ -66,8 +66,8 @@ export function volledigeToetsTekst(
     if (q.type === "mc") {
       for (const o of q.options) regels.push(`${o.letter}. ${o.text}`);
     }
-    regels.push(`Jouw antwoord: ${gegevenVan(q, v.given)}`);
-    regels.push(`Juist: ${juistVan(q)}`);
+    regels.push(`Jouw antwoord: ${gegevenAntwoord(q, v.given)}`);
+    regels.push(`Juist: ${juistAntwoord(q)}`);
     if (q.why.trim()) regels.push(`Waarom: ${q.why.trim()}`);
     regels.push("");
   });

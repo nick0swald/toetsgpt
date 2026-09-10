@@ -9,6 +9,7 @@ import {
 import { DEFAULT_VAK_ID } from "./stof";
 import { gradeToets } from "./scoring";
 import { slaDiagnoseOp } from "./diagnose-geheugen";
+import { voegHuiswerkRondeToe } from "./huiswerk";
 import { rapporteerOefening } from "./stats";
 import type { Screen, Toets, ToetsUitslag } from "./types";
 
@@ -136,6 +137,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         });
       } catch {
         /* localStorage mag falen */
+      }
+      try {
+        voegHuiswerkRondeToe(s.toets, uitslag, {
+          naam: s.naam,
+          startedAt: s.startedAt,
+          submittedAt: Date.now(),
+        });
+      } catch {
+        /* sessionStorage mag falen */
       }
       if (klas && events.length > 0) {
         void rapporteerOefening({ data: { events } }).catch(() => undefined);
