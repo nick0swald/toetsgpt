@@ -10,6 +10,13 @@ import {
   toetsBestandsnaam,
   volledigeToetsTekst,
 } from "@/lib/toets/export-toets";
+import {
+  downloadSessielog,
+  heeftHuiswerkRondes,
+  isHuiswerkActief,
+  isHuiswerkModusBeschikbaar,
+  setHuiswerkActief,
+} from "@/lib/toets/huiswerk";
 import { bouwOefentoets } from "@/lib/toets/demo";
 import { bouwExamenOefening } from "@/lib/toets/examen-oefen";
 import { onderdeelLabel } from "@/lib/toets/examenstof";
@@ -26,6 +33,10 @@ export function ResultsScreen() {
   const [bewaarHint, setBewaarHint] = useState<string | null>(null);
   const [bewaarOpen, setBewaarOpen] = useState(false);
   const [mailNaar, setMailNaar] = useState("");
+  const [huiswerkAan, setHuiswerkAan] = useState(() =>
+    isHuiswerkModusBeschikbaar() ? isHuiswerkActief() : false,
+  );
+  const [sessieHint, setSessieHint] = useState<string | null>(null);
   const uitslag = state.uitslag;
   const toets = state.toets;
   if (!uitslag || !toets) return null;
@@ -305,6 +316,7 @@ export function ResultsScreen() {
 
       {fout ? <p className="mt-4 text-center text-sm text-destructive">{fout}</p> : null}
       {bewaarHint ? <p className="mt-4 text-center text-sm text-muted-foreground">{bewaarHint}</p> : null}
+      {sessieHint ? <p className="mt-4 text-center text-sm text-muted-foreground">{sessieHint}</p> : null}
 
       <div className="mt-6 grid gap-3">
         {heeftStof && lastig.length > 0 ? (
@@ -321,6 +333,63 @@ export function ResultsScreen() {
         >
           {busy ? "Nieuwe toets maken…" : "Opnieuw, zelfde stof"}
         </Button>
+        {isHuiswerkModusBeschikbaar() ? (
+          <div className="grid gap-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-border)]">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-extrabold text-foreground">Huiswerkmodus</p>
+                <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
+                  {huiswerkAan
+                    ? "Sessielog aan. Rondes worden bijgehouden."
+                    : "Zet aan om verder te loggen."}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-pressed={huiswerkAan}
+                onClick={() => {
+                  const next = !huiswerkAan;
+                  setHuiswerkActief(next, state.naam);
+                  setHuiswerkAan(next);
+                }}
+                className={cn(
+                  "min-h-11 shrink-0 rounded-full px-4 text-sm font-bold",
+                  huiswerkAan
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-foreground shadow-[var(--shadow-border)]",
+                )}
+              >
+                {huiswerkAan ? "Aan" : "Uit"}
+              </button>
+            </div>
+            {heeftHuiswerkRondes() ? (
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="lg"
+                  onClick={() => {
+                    const ok = downloadSessielog(state.naam);
+                    setSessieHint(
+                      ok
+                        ? "Sessielog gedownload. Mail of upload naar je docent."
+                        : "Nog geen rondes in het sessielog.",
+                    );
+                  }}
+                >
+                  Download sessielog
+                </Button>
+                <p className="text-xs leading-relaxed text-subtle">
+                  Mail of upload het bestand naar je docent.
+                </p>
+              </>
+            ) : (
+              <p className="text-xs leading-relaxed text-subtle">
+                Na een afgeronde toets kun je hier het sessielog downloaden.
+              </p>
+            )}
+          </div>
+        ) : null}
         {bewaarOpen ? (
           <div className="grid gap-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-border)]">
             <p className="text-sm leading-relaxed text-muted-foreground">

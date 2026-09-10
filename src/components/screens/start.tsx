@@ -1,19 +1,33 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { FileText, GraduationCap, PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { naamOk } from "@/lib/toets/format";
+import {
+  isHuiswerkActief,
+  isHuiswerkModusBeschikbaar,
+  setHuiswerkActief,
+} from "@/lib/toets/huiswerk";
 import { useSession } from "@/lib/toets/session";
 import { VAKKEN } from "@/lib/toets/stof";
 import { cn } from "@/lib/utils";
 
 const START_VAKKEN = VAKKEN.filter((v) => v.id === "nask" || v.id === "lees");
+const HUISWERK_UI = isHuiswerkModusBeschikbaar();
 
 export function StartScreen() {
   const { state, setNaam, setVakId, go } = useSession();
   const naamFout = state.naam.length > 0 && !naamOk(state.naam);
   const isLees = state.vakId === "lees";
+  const [huiswerkAan, setHuiswerkAan] = useState(() => (HUISWERK_UI ? isHuiswerkActief() : false));
+
+  function toggleHuiswerk() {
+    const next = !huiswerkAan;
+    setHuiswerkActief(next, state.naam);
+    setHuiswerkAan(next);
+  }
 
   return (
     <div className="stagger-in flex min-h-0 flex-1 flex-col">
@@ -63,6 +77,34 @@ export function StartScreen() {
           </div>
         </div>
       </form>
+
+      {HUISWERK_UI ? (
+        <div className="mt-4 rounded-2xl bg-card p-4 shadow-[var(--shadow-border)]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-extrabold text-foreground">Huiswerkmodus</p>
+              <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
+                {huiswerkAan
+                  ? "Sessielog aan. Download na het oefenen."
+                  : "Zet aan om je oefensessie bij te houden."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={toggleHuiswerk}
+              aria-pressed={huiswerkAan}
+              className={cn(
+                "min-h-11 shrink-0 rounded-full px-4 text-sm font-bold",
+                huiswerkAan
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background text-foreground shadow-[var(--shadow-border)]",
+              )}
+            >
+              {huiswerkAan ? "Aan" : "Uit"}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-6 flex flex-1 flex-col gap-3">
         {isLees ? (
