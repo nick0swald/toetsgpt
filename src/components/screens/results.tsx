@@ -38,9 +38,9 @@ export function ResultsScreen() {
     isHuiswerkModusBeschikbaar() ? isHuiswerkActief() : false,
   );
   const [sessieHint, setSessieHint] = useState<string | null>(null);
+  if (!state.uitslag || !state.toets) return null;
   const uitslag = state.uitslag;
   const toets = state.toets;
-  if (!uitslag || !toets) return null;
   const huidige = toets;
   const diagnose = uitslag.diagnose;
   const heeftStof = diagnose.perStof.length > 0;
@@ -423,12 +423,12 @@ export function ResultsScreen() {
       {sessieHint ? <p className="mt-4 text-center text-sm text-muted-foreground">{sessieHint}</p> : null}
 
       <div className="mt-6 grid gap-3">
-        {heeftStof && lastig.length > 0 && !isKlasOefen ? (
+        {heeftStof && lastig.length > 0 && !isKlasOefen && !isExamenOefen ? (
           <Button type="button" size="lg" onClick={() => void maken("extra")} disabled={busy}>
             {busy ? "Extra oefening maken…" : "Oefen extra op lastige stof"}
           </Button>
         ) : null}
-        {!isKlasOefen ? (
+        {!isKlasOefen && !isExamenOefen ? (
           <Button
             type="button"
             variant={heeftStof && lastig.length > 0 ? "secondary" : "primary"}
@@ -437,6 +437,25 @@ export function ResultsScreen() {
             disabled={busy}
           >
             {busy ? "Nieuwe toets maken…" : "Opnieuw, zelfde stof"}
+          </Button>
+        ) : isExamenOefen ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            onClick={() => {
+              startToets(
+                bouwExamenOefening({
+                  niveau: String(huidige.bron.niveau || "GT"),
+                  seed: Date.now() % 1_000_000,
+                  ...(huidige.bron.paragraafIds?.length
+                    ? { focusOnderdeelIds: huidige.bron.paragraafIds }
+                    : {}),
+                }),
+              );
+            }}
+          >
+            Opnieuw, zelfde stof
           </Button>
         ) : (
           <Button

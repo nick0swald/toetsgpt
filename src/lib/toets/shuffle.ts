@@ -1,5 +1,5 @@
-import type { Letter, McQuestion, Question } from "./types";
-import { LETTERS } from "./types";
+import type { Letter, McQuestion, Question } from "./types.ts";
+import { LETTERS } from "./types.ts";
 
 export type Rng = () => number;
 

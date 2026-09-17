@@ -93,7 +93,7 @@ export function downloadTekst(naam: string, tekst: string, type = "text/plain"):
 }
 
 export function downloadDocx(naam: string, tekst: string): void {
-  const blob = new Blob([docxBytes(tekst)], {
+  const blob = new Blob([Uint8Array.from(docxBytes(tekst))], {
     type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   });
   const url = URL.createObjectURL(blob);
