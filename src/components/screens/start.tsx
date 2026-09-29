@@ -18,8 +18,8 @@ import { cn } from "@/lib/utils";
 const START_VAKKEN = VAKKEN.filter((v) => v.id === "nask" || v.id === "lees");
 const HUISWERK_UI = isHuiswerkModusBeschikbaar();
 
-/** Zet op false / verwijder knop wanneer de klastoets voorbij is. */
-export const TIJDELIJKE_KLAS_OEFEN = true;
+/** Uit (2026-09-29): H10/H14-blok verborgen voor leerlingen; code blijft staan. Zet op true om weer te tonen. */
+export const TIJDELIJKE_KLAS_OEFEN = false;
 
 export function StartScreen() {
   const { state, setNaam, setVakId, startToets, go } = useSession();
