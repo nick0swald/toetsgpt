@@ -166,11 +166,11 @@ export function StartScreen() {
         {!isLees ? (
           <Ingang
             icon={<GraduationCap className="size-6" strokeWidth={2} />}
-            title="Oefenen voor het examen"
-            body="Jaar 4 · CE-stijl, timer, score per onderdeel."
+            title="Oefenen voor je examen"
+            body="Klas 4 · BB, KB of GT · per toetsdeel of vraagtype, direct nagekeken."
             variant="exam"
             grow
-            onClick={() => !naamFout && go("examen")}
+            onClick={() => !naamFout && go("examtrain")}
           />
         ) : null}
         <p className="mt-auto pt-4 text-center text-xs leading-relaxed text-subtle">

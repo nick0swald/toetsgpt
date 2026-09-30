@@ -32,7 +32,7 @@ export function ExamenScreen() {
 
   return (
     <main className="flex flex-col">
-      <TopBar onBack={() => go("start")} label="Oefenen voor het examen" />
+      <TopBar onBack={() => go("examtrain")} label="CE-stijl proeftoets" />
       <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
         Alleen leerjaar 4. CE-stijl: ongeveer tien vragen, mix meerkeuze/open, inclusief korte
         vaktekst-leesvragen. Timer ongeveer twintig minuten. Geen letterlijke examens — originele
