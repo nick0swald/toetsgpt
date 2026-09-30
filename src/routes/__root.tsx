@@ -11,6 +11,8 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: APP_NAME },
       { name: "description", content: DESCRIPTION },
+      { name: "application-name", content: APP_NAME },
+      { name: "apple-mobile-web-app-title", content: APP_NAME },
       { name: "theme-color", content: "#ffffff" },
     ],
     links: [

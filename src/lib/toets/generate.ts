@@ -54,7 +54,7 @@ const AiToets = z.object({
 });
 
 function systemPrompt(vakTitel: string): string {
-  return `Je maakt een korte oefentoets voor VMBO-leerlingen (BB/KB/GT) van Ares058 in Leeuwarden, vak ${vakTitel}. Docent: Nick Oswald.
+  return `Je maakt een korte oefentoets voor VMBO-leerlingen (BB/KB/GT), vak ${vakTitel}. Noem nooit een schoolnaam, merknaam of "ToetsGPT"/"Grok" in de vragen.
 
 VORM
 - Cito-stijl: EERST een situatieschets, DAARNA de vraag. Nooit andersom.

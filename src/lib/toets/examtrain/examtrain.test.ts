@@ -91,3 +91,51 @@ describe("examentraining bank", () => {
     }
   });
 });
+
+import { leeg, maakSlimSet, maakStartmeting, registreer, resetLeerweg, statusVan, typeInfo } from "./progress.ts";
+
+describe("adaptief oefenen", () => {
+  it("startmeting: 15 verschillende frequente typen, geen AI", () => {
+    for (const lw of ["BB", "KB", "GT"] as const) {
+      const s = maakStartmeting(bank, lw, 3);
+      assert.equal(s.length, 15);
+      assert.equal(new Set(s.map((b) => b.type)).size, 15);
+      assert.ok(!s.some((b) => b.vorm === "open" && b.ai));
+    }
+  });
+  it("beheerst na 3 van de laatste 4 goed", () => {
+    const item = bank.find((b) => b.type === "E-PUI" && b.leerweg === "GT")!;
+    let v = leeg();
+    assert.equal(typeInfo(v, "GT", "E-PUI").status, "nieuw");
+    for (const g of [false, true, true]) v = registreer(v, "GT", item, g);
+    assert.equal(typeInfo(v, "GT", "E-PUI").status, "oefenen");
+    v = registreer(v, "GT", item, true);
+    assert.equal(typeInfo(v, "GT", "E-PUI").status, "beheerst");
+    assert.equal(statusVan({ hist: [true, true, false, false], n: 4 }), "oefenen");
+    assert.equal(typeInfo(resetLeerweg(v, "GT"), "GT", "E-PUI").status, "nieuw");
+  });
+  it("slim oefenen: zwakke typen vaker, recente vragen vermeden", () => {
+    let v = leeg();
+    const pui = bank.filter((b) => b.type === "E-PUI" && b.leerweg === "GT");
+    for (const b of pui.slice(0, 2)) v = registreer(v, "GT", b, false);
+    const beheerst = bank.find((b) => b.type === "E-COMP" && b.leerweg === "GT")!;
+    for (let i = 0; i < 4; i++) v = registreer(v, "GT", beheerst, true);
+    let pc = 0, comp = 0;
+    for (let s = 1; s <= 40; s++) {
+      const set = maakSlimSet(bank, "GT", v, s);
+      assert.equal(set.length, 10);
+      assert.equal(new Set(set.map((b) => b.id)).size, 10);
+      assert.ok(!set.some((b) => b.id === pui[0]!.id || b.id === pui[1]!.id));
+      pc += set.filter((b) => b.type === "E-PUI").length;
+      comp += set.filter((b) => b.type === "E-COMP").length;
+    }
+    assert.ok(pc > comp * 2, `${pc} vs ${comp}`);
+  });
+});
+
+describe("branding niet in vraaginhoud", () => {
+  it("bank bevat geen tagline of schoolnaam", () => {
+    const raw = readFileSync(new URL("./bank.json", import.meta.url), "utf8");
+    assert.ok(!/Nicko|Powered by|Ares058|Leeuwarden|ToetsGPT/i.test(raw));
+  });
+});

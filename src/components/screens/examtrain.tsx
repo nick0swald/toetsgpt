@@ -14,7 +14,19 @@ import {
 } from "@/lib/toets/examtrain/grade";
 import { TYPEN, type Leerweg } from "@/lib/toets/examtrain/nav";
 import { maakSet, telPerDeel, telPerType } from "@/lib/toets/examtrain/pick";
-import { TOETSDELEN_VOORLOPIG } from "@/lib/toets/examtrain/toetsdelen";
+import { TOETSDELEN, TOETSDELEN_VOORLOPIG } from "@/lib/toets/examtrain/toetsdelen";
+import {
+  bewaar,
+  laad,
+  leeg,
+  maakSlimSet,
+  maakStartmeting,
+  registreer,
+  resetLeerweg,
+  typeInfo,
+  type Status,
+  type Voortgang,
+} from "@/lib/toets/examtrain/progress";
 import { nakijkOpenAi } from "@/lib/toets/examtrain/open-ai";
 import { fmtUnit } from "@/lib/toets/examtrain/units";
 import { useSession } from "@/lib/toets/session";
@@ -26,10 +38,23 @@ const LEERWEGEN: Leerweg[] = ["BB", "KB", "GT"];
 const TYPE_NAAM = new Map(TYPEN.map((t) => [t.id, t.naam]));
 
 type Resultaat = { item: BankItem; uitslag: Uitslag; hints: number };
+type Modus = "vrij" | "start" | "slim";
 type Fase =
   | { k: "menu" }
-  | { k: "oefen"; titel: string; set: BankItem[]; i: number; res: Resultaat[] }
-  | { k: "klaar"; titel: string; res: Resultaat[]; typen?: string[] };
+  | { k: "voortgang" }
+  | { k: "oefen"; titel: string; set: BankItem[]; i: number; res: Resultaat[]; modus: Modus }
+  | { k: "klaar"; titel: string; res: Resultaat[]; typen?: string[]; modus: Modus };
+
+const STATUS_TXT: Record<Status, string> = { beheerst: "beheerst", oefenen: "oefenen", nieuw: "nog niet gezien" };
+const STATUS_KLEUR: Record<Status, string> = {
+  beheerst: "bg-emerald-100 text-emerald-800",
+  oefenen: "bg-amber-100 text-amber-900",
+  nieuw: "bg-muted text-muted-foreground",
+};
+
+function StatusLabel({ s, tekst }: { s: Status; tekst?: string }) {
+  return <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold", STATUS_KLEUR[s])}>{tekst ?? STATUS_TXT[s]}</span>;
+}
 
 function leesLw(): Leerweg | null {
   try {
@@ -47,9 +72,11 @@ export function ExamtrainScreen() {
   const [fase, setFase] = useState<Fase>({ k: "menu" });
   const [open, setOpen] = useState<string | null>(null);
   const [laatsteTypen, setLaatsteTypen] = useState<string[] | undefined>(undefined);
+  const [voortgang, setVoortgang] = useState<Voortgang>(leeg);
 
   useEffect(() => {
     setLwState(leesLw());
+    setVoortgang(laad());
     let actief = true;
     void import("@/lib/toets/examtrain/bank.json").then((m) => {
       if (actief) setBank(m.default as unknown as BankItem[]);
@@ -68,12 +95,18 @@ export function ExamtrainScreen() {
     }
   }
 
-  function start(titel: string, typen?: string[], n = 10) {
+  function start(titel: string, typen?: string[], n = 10, modus: Modus = "vrij") {
     if (!bank || !lw) return;
-    const set = maakSet(bank, lw, { typen, n, seed: Date.now() % 1_000_000 });
+    const seed = Date.now() % 1_000_000;
+    const set =
+      modus === "start"
+        ? maakStartmeting(bank, lw, seed)
+        : modus === "slim"
+          ? maakSlimSet(bank, lw, voortgang, seed, n, typen)
+          : maakSet(bank, lw, { typen, n, seed });
     if (!set.length) return;
     setLaatsteTypen(typen);
-    setFase({ k: "oefen", titel, set, i: 0, res: [] });
+    setFase({ k: "oefen", titel, set, i: 0, res: [], modus });
     window.scrollTo({ top: 0 });
   }
 
@@ -88,10 +121,15 @@ export function ExamtrainScreen() {
         item={fase.set[fase.i]!}
         nr={fase.i + 1}
         totaal={fase.set.length}
-        onStop={() => setFase({ k: "klaar", titel: fase.titel, res: fase.res, typen: laatsteTypen })}
+        onStop={() => setFase({ k: "klaar", titel: fase.titel, res: fase.res, typen: laatsteTypen, modus: fase.modus })}
         onKlaar={(r) => {
           const res = [...fase.res, r];
-          if (fase.i + 1 >= fase.set.length) setFase({ k: "klaar", titel: fase.titel, res, typen: laatsteTypen });
+          if (lw) {
+            const nv = registreer(voortgang, lw, r.item, r.uitslag.punten === r.uitslag.max);
+            setVoortgang(nv);
+            bewaar(nv);
+          }
+          if (fase.i + 1 >= fase.set.length) setFase({ k: "klaar", titel: fase.titel, res, typen: laatsteTypen, modus: fase.modus });
           else setFase({ ...fase, i: fase.i + 1, res });
           window.scrollTo({ top: 0 });
         }}
@@ -104,13 +142,42 @@ export function ExamtrainScreen() {
       <Samenvatting
         titel={fase.titel}
         res={fase.res}
-        onOpnieuw={() => start(fase.titel, fase.typen)}
+        modus={fase.modus}
+        nietGezien={fase.modus === "start" && lw ? perType.filter((t) => typeInfo(voortgang, lw, t.id).status === "nieuw").map((t) => t.naam) : []}
+        onOpnieuw={() => (fase.modus === "start" ? start("Slim oefenen", undefined, 10, "slim") : start(fase.titel, fase.typen, 10, fase.modus))}
         onMenu={() => setFase({ k: "menu" })}
       />
     );
   }
 
+  if (fase.k === "voortgang" && lw) {
+    return (
+      <VoortgangScherm
+        lw={lw}
+        voortgang={voortgang}
+        perType={perType}
+        onMenu={() => setFase({ k: "menu" })}
+        onOefen={(typen, titel) => start(titel, typen, typen.length > 1 ? 10 : 8, "slim")}
+        onReset={() => {
+          const nv = resetLeerweg(voortgang, lw);
+          setVoortgang(nv);
+          bewaar(nv);
+        }}
+      />
+    );
+  }
+
   const isGt = lw === "GT";
+  const telling = lw
+    ? perType.reduce(
+        (a, t) => {
+          a[typeInfo(voortgang, lw, t.id).status]++;
+          return a;
+        },
+        { beheerst: 0, oefenen: 0, nieuw: 0 } as Record<Status, number>,
+      )
+    : null;
+  const gestart = !!telling && telling.beheerst + telling.oefenen > 0;
   return (
     <main className="flex flex-col">
       <TopBar onBack={() => go("start")} label="Oefenen voor je examen" />
@@ -144,9 +211,49 @@ export function ExamtrainScreen() {
         <p className="mt-6 text-sm text-muted-foreground">Vragen laden…</p>
       ) : (
         <>
-          <Button type="button" className="mt-5 min-h-12 text-base font-bold" onClick={() => start("Gemengde set")}>
-            Gemengde set · 10 vragen
-          </Button>
+          {gestart ? (
+            <Button type="button" className="mt-5 min-h-12 text-base font-bold" onClick={() => start("Slim oefenen", undefined, 10, "slim")}>
+              Slim oefenen · 10 vragen
+            </Button>
+          ) : (
+            <>
+              <Button type="button" className="mt-5 min-h-12 text-base font-bold" onClick={() => start("Startmeting", undefined, 15, "start")}>
+                Startmeting · 15 vragen
+              </Button>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Eén vraag per vaak gevraagd examentype. Daarna weet je wat je al kunt en wat je moet oefenen.
+              </p>
+            </>
+          )}
+          {telling ? (
+            <button
+              type="button"
+              onClick={() => setFase({ k: "voortgang" })}
+              className="mt-3 flex items-center justify-between rounded-2xl bg-card px-4 py-3 text-left shadow-[var(--shadow-border)]"
+            >
+              <span>
+                <span className="block text-sm font-extrabold">Mijn voortgang</span>
+                <span className="block text-xs text-muted-foreground">
+                  {telling.beheerst} beheerst · {telling.oefenen} oefenen · {telling.nieuw} nog niet gezien
+                </span>
+              </span>
+              <ChevronRight className="size-5 text-muted-foreground" />
+            </button>
+          ) : null}
+          <div className="mt-3 flex gap-2">
+            {gestart ? (
+              <Button type="button" variant="outline" className="min-h-11 flex-1 font-bold" onClick={() => start("Startmeting", undefined, 15, "start")}>
+                Startmeting
+              </Button>
+            ) : (
+              <Button type="button" variant="outline" className="min-h-11 flex-1 font-bold" onClick={() => start("Slim oefenen", undefined, 10, "slim")}>
+                Slim oefenen
+              </Button>
+            )}
+            <Button type="button" variant="outline" className="min-h-11 flex-1 font-bold" onClick={() => start("Gemengde set")}>
+              Gemengde set
+            </Button>
+          </div>
 
           <section className="mt-7">
             <p className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">
@@ -225,8 +332,9 @@ export function ExamtrainScreen() {
                     onClick={() => start(t.naam, [t.id], Math.min(8, t.n))}
                   >
                     <span>{t.naam}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      {t.freq[lw]}× op examen · {t.n} vr.
+                    <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                      {t.freq[lw]}× · {t.n} vr.
+                      <StatusLabel s={typeInfo(voortgang, lw, t.id).status} tekst={{ beheerst: "✓", oefenen: "•", nieuw: "–" }[typeInfo(voortgang, lw, t.id).status]} />
                     </span>
                   </button>
                 </li>
@@ -513,7 +621,21 @@ function Feedback({
   );
 }
 
-function Samenvatting({ titel, res, onOpnieuw, onMenu }: { titel: string; res: Resultaat[]; onOpnieuw: () => void; onMenu: () => void }) {
+function Samenvatting({
+  titel,
+  res,
+  modus,
+  nietGezien,
+  onOpnieuw,
+  onMenu,
+}: {
+  titel: string;
+  res: Resultaat[];
+  modus: Modus;
+  nietGezien: string[];
+  onOpnieuw: () => void;
+  onMenu: () => void;
+}) {
   const tot = res.reduce((a, r) => a + r.uitslag.punten, 0);
   const max = res.reduce((a, r) => a + r.uitslag.max, 0);
   const perType = new Map<string, { p: number; m: number }>();
@@ -535,17 +657,27 @@ function Samenvatting({ titel, res, onOpnieuw, onMenu }: { titel: string; res: R
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">Per vraagtype (zwakste eerst)</p>
         <ul className="mt-2 flex flex-col divide-y divide-border rounded-2xl bg-card shadow-[var(--shadow-border)]">
           {rijen.map(([t, x]) => (
-            <li key={t} className="flex items-center justify-between px-4 py-2.5 text-sm">
+            <li key={t} className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm">
               <span>{TYPE_NAAM.get(t) ?? t}</span>
-              <span className={cn("font-bold", x.p === x.m ? "text-emerald-700" : x.p === 0 ? "text-red-700" : "")}>
-                {x.p}/{x.m}
-              </span>
+              {modus === "start" ? (
+                <StatusLabel s={x.p === x.m ? "beheerst" : "oefenen"} tekst={x.p === x.m ? "goed" : "oefenen"} />
+              ) : (
+                <span className={cn("font-bold", x.p === x.m ? "text-emerald-700" : x.p === 0 ? "text-red-700" : "")}>
+                  {x.p}/{x.m}
+                </span>
+              )}
+            </li>
+          ))}
+          {nietGezien.map((n) => (
+            <li key={n} className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-muted-foreground">
+              <span>{n}</span>
+              <StatusLabel s="nieuw" />
             </li>
           ))}
         </ul>
       </section>
       <Button type="button" className="mt-6 min-h-12 font-bold" onClick={onOpnieuw}>
-        Nog een set
+        {modus === "start" ? "Slim oefenen met je zwakke punten" : "Nog een set"}
       </Button>
       <Button type="button" variant="outline" className="mt-2 min-h-12 font-bold" onClick={onMenu}>
         Terug naar het overzicht
@@ -554,3 +686,97 @@ function Samenvatting({ titel, res, onOpnieuw, onMenu }: { titel: string; res: R
   );
 }
 
+
+function VoortgangScherm({
+  lw,
+  voortgang,
+  perType,
+  onMenu,
+  onOefen,
+  onReset,
+}: {
+  lw: Leerweg;
+  voortgang: Voortgang;
+  perType: { id: string; naam: string; n: number }[];
+  onMenu: () => void;
+  onOefen: (typen: string[], titel: string) => void;
+  onReset: () => void;
+}) {
+  const [zeker, setZeker] = useState(false);
+  const isGt = lw === "GT";
+  const groepen = TOETSDELEN.map((d) => ({ d, typen: perType.filter((t) => d.typen.includes(t.id)) })).filter((g) => g.typen.length);
+  const zonderDeel = perType.filter((t) => !TOETSDELEN.some((d) => d.typen.includes(t.id)));
+  const rang: Record<Status, number> = { oefenen: 0, nieuw: 1, beheerst: 2 };
+  const rij = (t: { id: string; naam: string }) => {
+    const info = typeInfo(voortgang, lw, t.id);
+    return (
+      <li key={t.id}>
+        <button type="button" onClick={() => onOefen([t.id], t.naam)} className="flex w-full items-center justify-between gap-2 px-4 py-2 text-left text-sm">
+          <span>{t.naam}</span>
+          <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+            {info.van ? `${info.goed}/${info.van}` : ""}
+            <StatusLabel s={info.status} />
+          </span>
+        </button>
+      </li>
+    );
+  };
+  const sorteer = (xs: { id: string; naam: string }[]) =>
+    [...xs].sort((a, b) => rang[typeInfo(voortgang, lw, a.id).status] - rang[typeInfo(voortgang, lw, b.id).status]);
+  return (
+    <main className="flex flex-col">
+      <TopBar onBack={onMenu} label={`Mijn voortgang · ${lw}`} />
+      <p className="mt-4 text-sm text-muted-foreground">
+        Beheerst = 3 van je laatste 4 vragen van dat type helemaal goed. Tik op een type om het te oefenen. Alleen op dit apparaat bewaard.
+      </p>
+      {groepen.map(({ d, typen }) => {
+        const bh = typen.filter((t) => typeInfo(voortgang, lw, t.id).status === "beheerst").length;
+        return (
+          <section key={d.id} className="mt-5">
+            <div className="flex items-baseline justify-between">
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">
+                {d.nr && isGt ? `Deel ${d.nr} · ` : ""}
+                {d.titel}
+                {TOETSDELEN_VOORLOPIG && d.nr ? " (voorlopig)" : ""}
+              </p>
+              <button type="button" className="text-xs font-bold text-primary" onClick={() => onOefen(d.typen, d.titel)}>
+                {bh}/{typen.length} · oefen
+              </button>
+            </div>
+            <ul className="mt-2 flex flex-col divide-y divide-border rounded-2xl bg-card shadow-[var(--shadow-border)]">{sorteer(typen).map(rij)}</ul>
+          </section>
+        );
+      })}
+      {zonderDeel.length ? (
+        <section className="mt-5">
+          <p className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">Overige typen</p>
+          <ul className="mt-2 flex flex-col divide-y divide-border rounded-2xl bg-card shadow-[var(--shadow-border)]">{sorteer(zonderDeel).map(rij)}</ul>
+        </section>
+      ) : null}
+      <div className="mt-8">
+        {zeker ? (
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="danger"
+              className="min-h-11 flex-1 font-bold"
+              onClick={() => {
+                onReset();
+                setZeker(false);
+              }}
+            >
+              Ja, wis voortgang {lw}
+            </Button>
+            <Button type="button" variant="outline" className="min-h-11 flex-1 font-bold" onClick={() => setZeker(false)}>
+              Annuleren
+            </Button>
+          </div>
+        ) : (
+          <button type="button" className="text-sm font-bold text-muted-foreground underline" onClick={() => setZeker(true)}>
+            Voortgang wissen
+          </button>
+        )}
+      </div>
+    </main>
+  );
+}

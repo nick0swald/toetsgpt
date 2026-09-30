@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { naamOk } from "@/lib/toets/format";
+import { FOOTER_TAGLINE } from "@/lib/toets/site";
 import {
   isHuiswerkActief,
   isHuiswerkModusBeschikbaar,
@@ -174,7 +175,7 @@ export function StartScreen() {
           />
         ) : null}
         <p className="mt-auto pt-4 text-center text-xs leading-relaxed text-subtle">
-          Ares058 VMBO Leeuwarden · toetsgpt.nl
+          {FOOTER_TAGLINE}
           <br />
           Oefenen voor de klas van Nick. Geen officieel cijfer.
         </p>
