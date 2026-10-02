@@ -7,11 +7,16 @@
  *   deel B: H13 Geluid, H14 Werktuigen, H15 Bewegingen, H16 Kracht en beweging
  * Let op: de oudere Nova-toetsmatrijzen in Nicks map nummeren anders (H1 Krachten, H6 Werktuigen, H10 Bewegingen,
  * H11 Kracht en beweging). Daar is "H11" dus Kracht en beweging (= H16 hier, SE4.4), niet Energie.
- * "Materie" in SE4.2 is geen 4GT-hoofdstuk (klas-3-stof: 3GT H4 Stoffen en/of H7 Materialen; nog te bevestigen).
- * SE4.5 (PO Licht, straling, het weer; weging examen 0) heeft geen 4GT-hoofdstuk en geen vraagtypen hier.
+ * "Materie" in SE4.2 is klas-3-stof (Nova Nask 1, 3 vmbo-gt), vastgesteld 2 okt 2026 op basis van de CvTE-syllabus
+ * NaSk1 GL/TL (K/4 Stoffen en materialen: 4.1–4.3, 4.8 faseovergangen, ρ = m/V; K/10 Bouw van de materie, SE-verplicht GT)
+ * en Nicks eigen 4GT-toets "Stoffen en Materialen" (2018-19):
+ *   3GT H2 §1 Het deeltjesmodel, H4 §1 Stofeigenschappen, H4 §2 Smeltpunt en kookpunt,
+ *   H7 §1 Materialen toepassen, H7 §4 Dichtheid (zinken/zweven/drijven). Niet: H4 §3–4, H7 §2–3.
+ * SE4.5 (PO Licht, straling, het weer; weging examen 0) telt alleen mee voor voortgang: geen 4GT-hoofdstuk, geen
+ * vraagtypen en daarom geen toetsdeel hier.
  * Per-type oefenen hangt hier NIET van af; een vraagtype mag in meerdere of geen toetsdelen staan.
  */
-export const TOETSDELEN_VOORLOPIG = true;
+export const TOETSDELEN_VOORLOPIG = false;
 
 export type Toetsdeel = {
   id: string;
@@ -34,10 +39,10 @@ export const TOETSDELEN: Toetsdeel[] = [
   },
   {
     id: "deel2", nr: 2, pta: "SE4.2", periode: 1, weging: 3,
-    titel: "Energie, geluid en materie", hoofdstukken: "H11 Energie + H13 Geluid + materie (klas 3) en Binas",
+    titel: "Energie, geluid en materie", hoofdstukken: "H11 Energie + H13 Geluid + materie (3GT H2 §1, H4 §1–2, H7 §1 + §4) en Binas",
     typen: [
       "EN-SOORT", "EN-DUUR", "E-REND", "W-VBW", "W-VERBR", "E-EPT", "E-KOST", "E-VERM-BEGR", "B-EZEK", "G-OSC", "G-GEHOOR", "G-FREQ", "G-ECHO", "G-BEREIK", "G-DB", "G-BRON",
-      // Materie (klas-3-stof, zie kop): dichtheid, fasen, stof- en materiaaleigenschappen.
+      // Materie (3GT H2 §1, H4 §1–2, H7 §1 + §4; zie kop): dichtheid, fasen, stof- en materiaaleigenschappen.
       "W-DICHT", "W-DICHTB", "W-FASE", "W-MAT", "W-STOF", "W-DRIJF",
     ],
   },

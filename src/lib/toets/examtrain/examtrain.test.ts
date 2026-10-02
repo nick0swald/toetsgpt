@@ -5,7 +5,7 @@ import { checkFormule, FAMILIES } from "./formula.ts";
 import { nakijkenReken, nakijkenMc, parseAntwoord, vergelijk, type BankItem, type RekenItem } from "./grade.ts";
 import { maakSet, telPerDeel } from "./pick.ts";
 import { TYPEN } from "./nav.ts";
-import { TOETSDELEN } from "./toetsdelen.ts";
+import { TOETSDELEN, TOETSDELEN_VOORLOPIG } from "./toetsdelen.ts";
 
 const bank = JSON.parse(readFileSync(new URL("./bank.json", import.meta.url), "utf8")) as BankItem[];
 const fmt = (v: number) => String(Number(v.toPrecision(6))).replace(".", ",");
@@ -33,7 +33,8 @@ describe("examentraining bank", () => {
     assert.deepEqual(se.map((d) => d.pta), ["SE4.1", "SE4.2", "SE4.3", "SE4.4"]);
     assert.deepEqual(se.map((d) => d.periode), [1, 1, 2, 2]);
     assert.ok(se.every((d) => d.weging === 3));
-    assert.match(se[1]!.hoofdstukken, /H11 Energie \+ H13 Geluid/);
+    assert.match(se[1]!.hoofdstukken, /H11 Energie \+ H13 Geluid \+ materie \(3GT H2 §1, H4 §1–2, H7 §1 \+ §4\)/);
+    assert.equal(TOETSDELEN_VOORLOPIG, false);
     for (const t of ["W-DICHT", "W-DICHTB", "W-FASE", "W-MAT", "W-STOF", "W-DRIJF"]) assert.ok(bekend.has(t) && se[1]!.typen.includes(t), t);
   });
   it("elk rekenitem: juiste uitwerking = alle punten", () => {
