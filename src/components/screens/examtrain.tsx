@@ -284,7 +284,7 @@ export function ExamtrainScreen() {
                             {d.titel}
                           </span>
                           <span className="block text-xs text-muted-foreground">
-                            {isGt ? `${d.hoofdstukken} · ` : ""}
+                            {isGt ? `${d.pta ? `${d.pta} · ` : ""}${d.hoofdstukken} · ` : ""}
                             {d.n} vragen
                           </span>
                         </button>
