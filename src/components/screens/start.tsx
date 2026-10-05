@@ -35,19 +35,7 @@ export function StartScreen() {
 
   return (
     <div className="stagger-in flex min-h-0 flex-1 flex-col">
-      <Ingang
-        icon={<Leaf className="size-6" strokeWidth={2} />}
-        title="Biologie"
-        body="13.3 tot en met 13.6."
-        variant="bio"
-        onClick={() => {
-          if (naamFout) return;
-          setVakId("biologie");
-          go("zelf");
-        }}
-      />
-
-      <p className="mt-5 max-w-[22ch] text-xl font-extrabold leading-tight tracking-tight text-foreground text-balance">
+      <p className="max-w-[22ch] text-xl font-extrabold leading-tight tracking-tight text-foreground text-balance">
         Oefen een toets. Geen Word, wel een score.
       </p>
 
@@ -138,6 +126,18 @@ export function StartScreen() {
       ) : null}
 
       <div className="mt-6 flex flex-1 flex-col gap-3">
+        <Ingang
+          icon={<Leaf className="size-6" strokeWidth={2} />}
+          title="Biologie"
+          body="13.3 tot en met 13.6."
+          variant="bio"
+          grow
+          onClick={() => {
+            if (naamFout) return;
+            setVakId("biologie");
+            go("zelf");
+          }}
+        />
         {isLees ? (
           <Ingang
             icon={<PencilLine className="size-6" strokeWidth={2} />}
