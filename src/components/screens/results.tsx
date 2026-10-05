@@ -421,9 +421,11 @@ export function ResultsScreen() {
             size="lg"
             onClick={() => {
               const vast = uitslag.perVraag.find((v) => v.points < v.max);
+              const q = vast?.question;
               openBio(
-                vast?.question.prompt ?? "",
-                vast ? weergaveJuist(vast.question) : "",
+                q ? [q.situation, q.prompt].filter(Boolean).join("\n") : "",
+                q ? weergaveJuist(q) : "",
+                vast?.given ?? "",
               );
             }}
           >

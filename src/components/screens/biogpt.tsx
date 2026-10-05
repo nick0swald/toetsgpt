@@ -20,6 +20,7 @@ export function BioGptScreen() {
   const { state, go } = useSession();
   const startVraag = state.bio?.vraag ?? "";
   const juist = state.bio?.juist ?? "";
+  const gaf = state.bio?.gaf ?? "";
   const [concept, setConcept] = useState("");
   const [regels, setRegels] = useState<Regel[]>(startVraag ? [{ van: "jij", tekst: startVraag }] : []);
   const [bezig, setBezig] = useState(false);
@@ -32,26 +33,31 @@ export function BioGptScreen() {
     einde.current?.scrollIntoView({ block: "end" });
   }, [regels, bezig]);
 
+  function huidigeVraag(): string {
+    for (let i = regels.length - 1; i >= 0; i -= 1) {
+      const regel = regels[i];
+      if (regel?.van === "jij" && !Object.values(KNOP).includes(regel.tekst)) return regel.tekst;
+    }
+    return startVraag;
+  }
+
   async function stuur(stap: BioStap) {
     const getypt = concept.trim();
-    if (!startVraag && regels.length === 0 && !getypt) {
-      setFout("Zet eerst je vraag.");
-      return;
-    }
-    if (stap === "vrij" && !getypt) {
-      setFout("Typ eerst iets.");
+    const vraag = stap === "vrij" ? getypt : getypt || huidigeVraag();
+    if (!vraag) {
+      setFout(stap === "vrij" ? "Typ eerst iets." : "Zet eerst je vraag.");
       return;
     }
     setFout(null);
     setBezig(true);
-    const geschiedenis = regels;
     try {
       const res = await vraagBio({
         data: {
           stap,
-          tekst: getypt || startVraag || undefined,
+          tekst: vraag,
           juist: juist || undefined,
-          geschiedenis,
+          gaf: gaf || undefined,
+          geschiedenis: regels,
         },
       });
       if (!res.ok) {
@@ -59,17 +65,15 @@ export function BioGptScreen() {
         return;
       }
       const toevoegen: Regel[] = [];
-      if (stap === "vrij") {
-        toevoegen.push({ van: "jij", tekst: getypt });
-      } else {
-        if (getypt && !geschiedenis.some((r) => r.van === "jij" && r.tekst === getypt)) {
-          toevoegen.push({ van: "jij", tekst: getypt });
-        }
-        toevoegen.push({ van: "jij", tekst: KNOP[stap] });
+      if (stap === "vrij") toevoegen.push({ van: "jij", tekst: getypt });
+      else if (!regels.some((r) => r.van === "jij" && r.tekst === vraag)) {
+        toevoegen.push({ van: "jij", tekst: vraag });
       }
+      if (stap !== "vrij") toevoegen.push({ van: "jij", tekst: KNOP[stap] });
       setRegels((cur) => [...cur, ...toevoegen, { van: "bio", tekst: res.tekst }]);
-      if (stap === "vrij" || regels.length === 0) setConcept("");
+      setConcept("");
       if (stap === "antwoord") setAntwoordGezien(true);
+      if (stap === "oefen") setAntwoordGezien(false);
     } catch {
       setFout("BioGPT antwoordt nu niet. Probeer opnieuw.");
     } finally {
@@ -89,13 +93,13 @@ export function BioGptScreen() {
       </button>
       <p className="mt-3 font-serif text-2xl font-medium tracking-tight text-foreground">BioGPT</p>
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-        Zelfde hulp als Oswald. Over 13.3 tot en met 13.6. Een beetje extra uitleg mag, die staat niet op de toets.
+        Hulp bij je biologievraag. Eerst zelf nadenken. Over 13.3 tot en met 13.6. Extra uitleg mag, die staat niet op de toets.
       </p>
 
       <ul className="mt-5 grid gap-3">
         {regels.length === 0 ? (
           <li className="rounded-2xl bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground shadow-[var(--shadow-border)]">
-            Plak de vraag waar je vastzit. Daarna: snap je vraag, een hint, of hulp.
+            Plak de vraag. Daarna: snap je vraag, een hint, of hulp.
           </li>
         ) : null}
         {regels.map((r, i) => (
@@ -103,7 +107,7 @@ export function BioGptScreen() {
             key={`${i}-${r.van}`}
             className={
               r.van === "bio"
-                ? "rounded-2xl bg-card px-4 py-3 text-sm leading-relaxed text-foreground shadow-[var(--shadow-border)]"
+                ? "rounded-2xl bg-[#C6F531]/25 px-4 py-3 text-sm leading-relaxed text-foreground shadow-[var(--shadow-border)]"
                 : "rounded-2xl bg-primary/10 px-4 py-3 text-sm leading-relaxed text-foreground"
             }
           >
@@ -136,17 +140,20 @@ export function BioGptScreen() {
       {fout ? <p className="mt-3 text-sm text-destructive">{fout}</p> : null}
 
       <div className="mt-4 grid gap-2">
-        <Button type="button" size="lg" onClick={() => void stuur(regels.length === 0 ? "snap" : "vrij")} disabled={bezig}>
-          {regels.length === 0 ? "Snap je vraag" : "Stuur"}
+        {concept.trim() ? (
+          <Button type="button" size="lg" onClick={() => void stuur(heeftGesprek ? "vrij" : "snap")} disabled={bezig}>
+            {bezig ? "Even denken…" : "Stuur"}
+          </Button>
+        ) : null}
+        <Button type="button" size="lg" onClick={() => void stuur("snap")} disabled={bezig}>
+          Snap je vraag
         </Button>
-        <div className="grid grid-cols-2 gap-2">
-          <Button type="button" variant="secondary" size="lg" onClick={() => void stuur("hint")} disabled={bezig}>
-            Eerst een hint
-          </Button>
-          <Button type="button" variant="secondary" size="lg" onClick={() => void stuur("hulp")} disabled={bezig}>
-            Hulp
-          </Button>
-        </div>
+        <Button type="button" variant="secondary" size="lg" onClick={() => void stuur("hint")} disabled={bezig}>
+          Eerst een hint
+        </Button>
+        <Button type="button" variant="secondary" size="lg" onClick={() => void stuur("hulp")} disabled={bezig}>
+          Hulp
+        </Button>
         {heeftGesprek ? (
           <>
             <Button type="button" variant="secondary" size="lg" onClick={() => void stuur("nog")} disabled={bezig}>
