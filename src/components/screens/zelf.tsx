@@ -36,6 +36,7 @@ export function ZelfScreen() {
   const { state, go, startToets, startDoor } = useSession();
   const vak = vakOf(state.vakId);
   const isLees = vak.id === "lees";
+  const isBio = vak.id === "biologie";
   const fromKlas = parseKlas(state.klas);
   const [leerjaar, setLeerjaar] = useState<Leerjaar | "">(fromKlas.leerjaar);
   const [niveau, setNiveau] = useState<Niveau | "">(fromKlas.niveau);
@@ -149,58 +150,65 @@ export function ZelfScreen() {
 
   return (
     <main className="flex flex-col">
-      <TopBar onBack={() => go("start")} label={isLees ? "Leesvaardigheid" : "Zelf oefenen"} />
+      <TopBar
+        onBack={() => go("start")}
+        label={isLees ? "Leesvaardigheid" : isBio ? "Biologie" : "Zelf oefenen"}
+      />
 
       <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
         {isLees
           ? "Korte vaktekst, daarna één vraag. Woord, verwijzing of hoofdzaak. Geen rekenen."
-          : `Kies jaar, niveau en hoofdstuk. Daarna kun je de toets verder afstellen.`}
+          : isBio
+            ? "Kies paragrafen als je wilt. Daarna kun je de toets verder afstellen."
+            : "Kies jaar, niveau en hoofdstuk. Daarna kun je de toets verder afstellen."}
       </p>
-      {isLees ? (
-        <p className="mt-2 text-xs text-subtle">{vak.bronLabel}</p>
-      ) : (
-        <p className="mt-2 text-xs text-subtle">{boekLabel(state.klas, leerjaar)}</p>
-      )}
+      <p className="mt-2 text-xs text-subtle">
+        {isLees || isBio ? vak.bronLabel : boekLabel(state.klas, leerjaar)}
+      </p>
 
       {!isLees ? (
         <>
-          <section className="mt-6">
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">Jaar</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {LEERJAREN.map((j) => (
-                <Chip key={j} selected={leerjaar === j} onClick={() => setLeerjaar(j)}>
-                  {j}
-                </Chip>
-              ))}
-            </div>
-          </section>
+          {isBio ? null : (
+            <>
+              <section className="mt-6">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">Jaar</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {LEERJAREN.map((j) => (
+                    <Chip key={j} selected={leerjaar === j} onClick={() => setLeerjaar(j)}>
+                      {j}
+                    </Chip>
+                  ))}
+                </div>
+              </section>
 
-          <section className="mt-5">
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">Niveau</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {NIVEAUS.map((n) => (
-                <Chip key={n} selected={niveau === n} onClick={() => setNiveau(n)}>
-                  {n}
-                </Chip>
-              ))}
-            </div>
-          </section>
+              <section className="mt-5">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">Niveau</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {NIVEAUS.map((n) => (
+                    <Chip key={n} selected={niveau === n} onClick={() => setNiveau(n)}>
+                      {n}
+                    </Chip>
+                  ))}
+                </div>
+              </section>
 
-          <div className="mt-5">
-            <FieldSelect
-              id="hoofdstuk"
-              label="Hoofdstuk"
-              value={hoofdstukId}
-              onChange={kiesHoofdstuk}
-              options={[
-                { value: "", label: "Kies een hoofdstuk" },
-                ...hoofdstukken.map((h) => ({
-                  value: h.id,
-                  label: h.boek ? `${h.titel} · Nova` : h.titel,
-                })),
-              ]}
-            />
-          </div>
+              <div className="mt-5">
+                <FieldSelect
+                  id="hoofdstuk"
+                  label="Hoofdstuk"
+                  value={hoofdstukId}
+                  onChange={kiesHoofdstuk}
+                  options={[
+                    { value: "", label: "Kies een hoofdstuk" },
+                    ...hoofdstukken.map((h) => ({
+                      value: h.id,
+                      label: h.boek ? `${h.titel} · Nova` : h.titel,
+                    })),
+                  ]}
+                />
+              </div>
+            </>
+          )}
 
           {hoofdstuk ? (
             <section className="mt-5">
