@@ -7,8 +7,7 @@ import { useSession } from "@/lib/toets/session";
 
 type Regel = { van: "jij" | "bio"; tekst: string };
 
-const KNOP: Record<Exclude<BioStap, "vrij">, string> = {
-  snap: "Snap je vraag",
+const KNOP: Record<Exclude<BioStap, "vrij" | "snap">, string> = {
   hint: "Eerst een hint",
   hulp: "Hulp",
   nog: "Ik snap het nog niet",
@@ -69,7 +68,7 @@ export function BioGptScreen() {
       else if (!regels.some((r) => r.van === "jij" && r.tekst === vraag)) {
         toevoegen.push({ van: "jij", tekst: vraag });
       }
-      if (stap !== "vrij") toevoegen.push({ van: "jij", tekst: KNOP[stap] });
+      if (stap !== "vrij" && stap !== "snap") toevoegen.push({ van: "jij", tekst: KNOP[stap] });
       setRegels((cur) => [...cur, ...toevoegen, { van: "bio", tekst: res.tekst }]);
       setConcept("");
       if (stap === "antwoord") setAntwoordGezien(true);
@@ -93,15 +92,10 @@ export function BioGptScreen() {
       </button>
       <p className="mt-3 font-serif text-2xl font-medium tracking-tight text-foreground">BioGPT</p>
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-        Hulp bij je biologievraag. Eerst zelf nadenken. Over 13.3 tot en met 13.6. Extra uitleg mag, die staat niet op de toets.
+        Hulp bij je biologievraag. Over 13.3 tot en met 13.6. Extra uitleg mag, die staat niet op de toets.
       </p>
 
       <ul className="mt-5 grid gap-3">
-        {regels.length === 0 ? (
-          <li className="rounded-2xl bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground shadow-[var(--shadow-border)]">
-            Plak de vraag. Daarna: snap je vraag, een hint, of hulp.
-          </li>
-        ) : null}
         {regels.map((r, i) => (
           <li
             key={`${i}-${r.van}`}
@@ -141,14 +135,17 @@ export function BioGptScreen() {
 
       <div className="mt-4 grid gap-2">
         {concept.trim() ? (
-          <Button type="button" size="lg" onClick={() => void stuur(heeftGesprek ? "vrij" : "snap")} disabled={bezig}>
+          <Button type="button" size="lg" onClick={() => void stuur(heeftGesprek ? "vrij" : "hint")} disabled={bezig}>
             {bezig ? "Even denken…" : "Stuur"}
           </Button>
         ) : null}
-        <Button type="button" size="lg" onClick={() => void stuur("snap")} disabled={bezig}>
-          Snap je vraag
-        </Button>
-        <Button type="button" variant="secondary" size="lg" onClick={() => void stuur("hint")} disabled={bezig}>
+        <Button
+          type="button"
+          variant={concept.trim() ? "secondary" : "primary"}
+          size="lg"
+          onClick={() => void stuur("hint")}
+          disabled={bezig}
+        >
           Eerst een hint
         </Button>
         <Button type="button" variant="secondary" size="lg" onClick={() => void stuur("hulp")} disabled={bezig}>
