@@ -33,7 +33,7 @@ function duurLabel(tijd: TijdKeuze): string {
 }
 
 export function ZelfScreen() {
-  const { state, go, startToets, startDoor } = useSession();
+  const { state, go, startToets, startDoor, openBio } = useSession();
   const vak = vakOf(state.vakId);
   const isLees = vak.id === "lees";
   const isBio = vak.id === "biologie";
@@ -356,6 +356,11 @@ export function ZelfScreen() {
             Oefenen zonder einde
           </Button>
         )}
+        {isBio ? (
+          <Button type="button" variant="bio" size="lg" className="mt-3" onClick={() => openBio(lastig.trim())}>
+            Vraag het BioGPT
+          </Button>
+        ) : null}
       </div>
     </main>
   );

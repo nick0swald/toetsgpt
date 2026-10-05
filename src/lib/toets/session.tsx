@@ -38,6 +38,7 @@ export type SessionState = {
   confirmSubmit: boolean;
   docentPin: string;
   door: DoorRonde | null;
+  bio: { vraag: string; juist: string } | null;
 };
 
 const initial: SessionState = {
@@ -54,6 +55,7 @@ const initial: SessionState = {
   confirmSubmit: false,
   docentPin: "",
   door: null,
+  bio: null,
 };
 
 type Api = {
@@ -74,6 +76,7 @@ type Api = {
   keurDoor: () => void;
   volgendeDoor: () => void;
   stopDoor: () => void;
+  openBio: (vraag: string, juist?: string) => void;
   resetKeepStudent: () => void;
   home: () => void;
 };
@@ -270,6 +273,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       };
     });
   }, []);
+  const openBio = useCallback((vraag: string, juist = "") => {
+    setState((s) => ({
+      ...s,
+      bio: { vraag: vraag.trim(), juist: juist.trim() },
+      screen: "biogpt",
+      confirmSubmit: false,
+    }));
+  }, []);
   const resetKeepStudent = useCallback(() => {
     setState((s) => ({
       ...initial,
@@ -303,6 +314,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       keurDoor,
       volgendeDoor,
       stopDoor,
+      openBio,
       resetKeepStudent,
       home,
     }),
@@ -324,6 +336,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       keurDoor,
       volgendeDoor,
       stopDoor,
+      openBio,
       resetKeepStudent,
       home,
     ],

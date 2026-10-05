@@ -28,7 +28,7 @@ import type { McQuestion, Question, StofScore } from "@/lib/toets/types";
 import { cn } from "@/lib/utils";
 
 export function ResultsScreen() {
-  const { state, startToets, startDoor, home, resetKeepStudent, go } = useSession();
+  const { state, startToets, startDoor, home, resetKeepStudent, go, openBio } = useSession();
   const [busy, setBusy] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
   const [bewaarHint, setBewaarHint] = useState<string | null>(null);
@@ -408,22 +408,28 @@ export function ResultsScreen() {
         ))}
       </ol>
 
-      <p className="mt-8 text-center text-sm leading-relaxed text-muted-foreground">
-        Zit je vast bij een vraag?{" "}
-        <a
-          href="https://oswaldgpt.nl"
-          className="font-medium text-primary underline decoration-primary/40 underline-offset-2"
-        >
-          Vraag het Oswald
-        </a>
-        .
-      </p>
-
       {fout ? <p className="mt-4 text-center text-sm text-destructive">{fout}</p> : null}
       {bewaarHint ? <p className="mt-4 text-center text-sm text-muted-foreground">{bewaarHint}</p> : null}
       {sessieHint ? <p className="mt-4 text-center text-sm text-muted-foreground">{sessieHint}</p> : null}
 
       <div className="mt-6 grid gap-3">
+        {huidige.bron.vakId === "biologie" ||
+        huidige.questions.some((q) => q.stof?.hoofdstukId === "bio-13") ? (
+          <Button
+            type="button"
+            variant="bio"
+            size="lg"
+            onClick={() => {
+              const vast = uitslag.perVraag.find((v) => v.points < v.max);
+              openBio(
+                vast?.question.prompt ?? "",
+                vast ? weergaveJuist(vast.question) : "",
+              );
+            }}
+          >
+            Vraag het BioGPT
+          </Button>
+        ) : null}
         {heeftStof && lastig.length > 0 && !isKlasOefen && !isExamenOefen ? (
           <Button type="button" size="lg" onClick={() => void maken("extra")} disabled={busy}>
             {busy ? "Extra oefening maken…" : "Oefen extra op lastige stof"}
