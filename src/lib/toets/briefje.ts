@@ -90,7 +90,7 @@ export function briefjeVan(toets: Toets, uitslag: ToetsUitslag, klas?: string): 
   return {
     v: 1,
     app: "ToetsGPT",
-    feedback: schrijfFeedback(d, uitslag.behaald, uitslag.totaal),
+    feedback: uitslag.nakijk?.zinnen || schrijfFeedback(d, uitslag.behaald, uitslag.totaal),
     vak: toets.subject || CURRICULUM.titel,
     vakId,
     leerjaar: toets.bron.leerjaar,

@@ -3,6 +3,7 @@ import { LEES_TAG } from "./lees";
 import type {
   Diagnose,
   InvulQuestion,
+  Nakijk,
   OpenQuestion,
   Question,
   StofScore,
@@ -106,6 +107,28 @@ export function diagnoseVan(perVraag: VraagUitslag[]): Diagnose {
   const perStof: StofScore[] = [...map.values()];
   const lastig = perStof.filter((s) => s.totaal > 0 && s.behaald / s.totaal < 0.55);
   return { perStof, lastig };
+}
+
+/** Vervang de lastige paragrafen door wat de nakijkbeurt aanwees. Geen nieuwe ids. */
+export function pasNakijk(uitslag: ToetsUitslag, nakijk: Nakijk): ToetsUitslag {
+  const bekend = new Set(uitslag.diagnose.perStof.map((s) => s.tag.paragraafId));
+  const gekozen = nakijk.lastigIds.filter((id) => bekend.has(id) && id !== LEES_TAG.paragraafId);
+  let lastig = uitslag.diagnose.lastig;
+  if (gekozen.length > 0) {
+    lastig = uitslag.diagnose.perStof.filter((s) => gekozen.includes(s.tag.paragraafId));
+  }
+  if (nakijk.volgende === "lees") {
+    const lees = uitslag.diagnose.perStof.find((s) => s.tag.paragraafId === LEES_TAG.paragraafId);
+    const zwak = lees && lees.totaal > 0 && lees.behaald / lees.totaal < 0.55;
+    if (zwak && lees && !lastig.some((s) => s.tag.paragraafId === lees.tag.paragraafId)) {
+      lastig = [lees, ...lastig];
+    }
+  }
+  return {
+    ...uitslag,
+    nakijk: { ...nakijk, lastigIds: gekozen },
+    diagnose: { ...uitslag.diagnose, lastig },
+  };
 }
 
 export function gradeToets(toets: Toets, answers: Record<string, string>): ToetsUitslag {

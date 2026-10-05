@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,12 +23,15 @@ import { bouwKlasOefening, klasTopicLabel } from "@/lib/toets/klas-oefen";
 import { onderdeelLabel } from "@/lib/toets/examenstof";
 import { nlCijfer } from "@/lib/toets/format";
 import { generateToets } from "@/lib/toets/generate";
+import { nakijkRonde, pakketVan } from "@/lib/toets/nakijk";
 import { useSession } from "@/lib/toets/session";
-import type { McQuestion, Question, StofScore } from "@/lib/toets/types";
+import type { McQuestion, Nakijk, Question, StofScore } from "@/lib/toets/types";
 import { cn } from "@/lib/utils";
 
+const nakijkBelofte = new Map<number, Promise<{ ok: true; nakijk: Nakijk } | { ok: false }>>();
+
 export function ResultsScreen() {
-  const { state, startToets, startDoor, home, resetKeepStudent, go, openBio } = useSession();
+  const { state, startToets, startDoor, home, resetKeepStudent, go, openBio, zetNakijk } = useSession();
   const [busy, setBusy] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
   const [bewaarHint, setBewaarHint] = useState<string | null>(null);
@@ -38,6 +41,37 @@ export function ResultsScreen() {
     isHuiswerkModusBeschikbaar() ? isHuiswerkActief() : false,
   );
   const [sessieHint, setSessieHint] = useState<string | null>(null);
+  const [nakijkBezig, setNakijkBezig] = useState(false);
+
+  useEffect(() => {
+    const at = state.submittedAt;
+    const toetsNu = state.toets;
+    const uitslagNu = state.uitslag;
+    if (!at || !toetsNu || !uitslagNu || uitslagNu.nakijk) return;
+    let lopend = nakijkBelofte.get(at);
+    if (!lopend) {
+      const pakket = pakketVan(toetsNu, uitslagNu);
+      if (pakket.vragen.length === 0) return;
+      lopend = nakijkRonde({ data: pakket });
+      nakijkBelofte.set(at, lopend);
+    }
+    let weg = false;
+    setNakijkBezig(true);
+    void lopend.then(
+      (res) => {
+        if (weg) return;
+        if (res.ok) zetNakijk(res.nakijk);
+        setNakijkBezig(false);
+      },
+      () => {
+        if (!weg) setNakijkBezig(false);
+      },
+    );
+    return () => {
+      weg = true;
+    };
+  }, [state.submittedAt, state.toets, state.uitslag, zetNakijk]);
+
   if (!state.uitslag || !state.toets) return null;
   const uitslag = state.uitslag;
   const toets = state.toets;
@@ -45,6 +79,7 @@ export function ResultsScreen() {
   const diagnose = uitslag.diagnose;
   const heeftStof = diagnose.perStof.length > 0;
   const lastig = diagnose.lastig;
+  const aiIds = (uitslag.nakijk?.lastigIds ?? []).filter(Boolean);
   const briefje = briefjeVan(huidige, uitslag, state.klas);
   const isExamenOefen =
     /examen/i.test(huidige.title) ||
@@ -107,24 +142,33 @@ export function ResultsScreen() {
     const bron = huidige.bron;
     const extraParas =
       mode === "extra"
-        ? (lastig.length ? lastig : zwakste(diagnose.perStof)).map((s) => s.tag.paragraafId)
+        ? uitslag.nakijk?.volgende === "lees"
+          ? []
+          : aiIds.length
+            ? aiIds
+            : (lastig.length ? lastig : zwakste(diagnose.perStof)).map((s) => s.tag.paragraafId)
         : (bron.paragraafIds ?? []);
-    const extraTags = mode === "extra" ? (lastig.length ? lastig : zwakste(diagnose.perStof)) : [];
+    const extraSoort = mode === "extra" && uitslag.nakijk?.volgende === "lees" ? "lees" : mode === "extra" ? "mix" : bron.soort;
+    const extraTags = mode === "extra" && extraSoort !== "lees" ? (lastig.length ? lastig : zwakste(diagnose.perStof)) : [];
     const extraLastig =
-      extraTags.map((s) => s.tag.label).join(", ") || bron.lastig || "";
+      extraSoort === "lees"
+        ? "vaktekst lezen"
+        : extraTags.map((s) => s.tag.label).join(", ") || bron.lastig || "";
     const hoofdstukken = new Set(extraTags.map((s) => s.tag.hoofdstukId));
     const hoofdstukId =
       mode === "extra"
-        ? hoofdstukken.size === 1
-          ? [...hoofdstukken][0]
-          : undefined
+        ? extraSoort === "lees"
+          ? bron.hoofdstukId
+          : hoofdstukken.size === 1
+            ? [...hoofdstukken][0]
+            : bron.hoofdstukId
         : bron.hoofdstukId;
 
     if (bron.kind === "demo" || bron.hoofdstukId || extraParas.length > 0) {
       startToets(
         bouwOefentoets({
           count: bron.count,
-          soort: mode === "extra" ? "mix" : bron.soort,
+          soort: extraSoort,
           tijd: bron.tijd,
           seed: Date.now() % 1_000_000,
           kind: mode === "extra" ? "extra" : bron.kind,
@@ -150,7 +194,7 @@ export function ResultsScreen() {
           klas: state.klas,
           lesstof: extraLastig || bron.raw || bron.topic,
           count: bron.count,
-          soort: mode === "extra" ? "mix" : bron.soort,
+          soort: extraSoort,
           tijd: bron.tijd,
           previousTitle: huidige.title,
           leerjaar: bron.leerjaar,
@@ -343,6 +387,13 @@ export function ResultsScreen() {
           Oefenbriefje
         </p>
         <p className="mt-3 text-sm leading-relaxed text-foreground">{briefje.feedback}</p>
+        {nakijkBezig ? (
+          <p className="mt-2 text-sm text-muted-foreground">Even nakijken…</p>
+        ) : uitslag.nakijk ? (
+          <p className="mt-2 text-sm text-muted-foreground">
+            {uitslag.nakijk.volgende === "lees" ? "Volgende ronde: leesvragen." : "Volgende ronde: de lastige stof."}
+          </p>
+        ) : null}
         {heeftStof ? (
           <ul className="mt-4 grid gap-2">
             {diagnose.perStof.map((s) => {
@@ -433,8 +484,12 @@ export function ResultsScreen() {
           </Button>
         ) : null}
         {heeftStof && lastig.length > 0 && !isKlasOefen && !isExamenOefen ? (
-          <Button type="button" size="lg" onClick={() => void maken("extra")} disabled={busy}>
-            {busy ? "Extra oefening maken…" : "Oefen extra op lastige stof"}
+          <Button type="button" size="lg" onClick={() => void maken("extra")} disabled={busy || nakijkBezig}>
+            {nakijkBezig
+              ? "Even nakijken…"
+              : uitslag.nakijk?.volgende === "lees"
+                ? "Oefen extra met leesvragen"
+                : "Oefen extra op lastige stof"}
           </Button>
         ) : null}
         {!isKlasOefen && !isExamenOefen ? (
@@ -645,10 +700,19 @@ export function ResultsScreen() {
                 {
                   ...huidige.bron,
                   kind: "door",
-                  paragraafIds: lastig.length
-                    ? lastig.map((s) => s.tag.paragraafId)
-                    : huidige.bron.paragraafIds,
-                  lastig: lastig.map((s) => s.tag.label).join(", ") || huidige.bron.lastig,
+                  soort: uitslag.nakijk?.volgende === "lees" ? "lees" : huidige.bron.soort,
+                  paragraafIds:
+                    uitslag.nakijk?.volgende === "lees"
+                      ? huidige.bron.paragraafIds
+                      : aiIds.length
+                        ? aiIds
+                        : lastig.length
+                          ? lastig.map((s) => s.tag.paragraafId)
+                          : huidige.bron.paragraafIds,
+                  lastig:
+                    uitslag.nakijk?.volgende === "lees"
+                      ? "vaktekst lezen"
+                      : lastig.map((s) => s.tag.label).join(", ") || huidige.bron.lastig,
                 },
                 huidige.questions.map((q) => q.prompt),
               )

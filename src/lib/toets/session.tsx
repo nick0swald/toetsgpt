@@ -8,12 +8,12 @@ import {
 } from "react";
 import { DEFAULT_VAK_ID, vakOf } from "./stof";
 import { bouwOefentoets } from "./demo";
-import { diagnoseVan, gradeQuestion, gradeToets } from "./scoring";
+import { diagnoseVan, gradeQuestion, gradeToets, pasNakijk } from "./scoring";
 import { doelId } from "./koppel";
 import { slaDiagnoseOp } from "./diagnose-geheugen";
 import { voegHuiswerkRondeToe } from "./huiswerk";
 import { rapporteerOefening } from "./stats";
-import type { Question, Screen, Toets, ToetsBron, ToetsUitslag, VraagUitslag } from "./types";
+import type { Nakijk, Question, Screen, Toets, ToetsBron, ToetsUitslag, VraagUitslag } from "./types";
 
 export type DoorRonde = {
   log: VraagUitslag[];
@@ -77,6 +77,7 @@ type Api = {
   volgendeDoor: () => void;
   stopDoor: () => void;
   openBio: (vraag: string, juist?: string, gaf?: string) => void;
+  zetNakijk: (nakijk: Nakijk) => void;
   resetKeepStudent: () => void;
   home: () => void;
 };
@@ -113,7 +114,7 @@ function kiesDoorVraag(bron: ToetsBron, log: VraagUitslag[], gezien: string[]): 
     .filter((id) => id && id !== "lees-vaktekst");
   const vragen = bouwOefentoets({
     count: 6,
-    soort: "mix",
+    soort: bron.soort === "lees" ? "lees" : "mix",
     tijd: "kort",
     seed: Date.now() % 1_000_000,
     kind: "door",
@@ -281,6 +282,26 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       confirmSubmit: false,
     }));
   }, []);
+  const zetNakijk = useCallback((nakijk: Nakijk) => {
+    setState((s) => {
+      if (!s.toets || !s.uitslag || s.uitslag.nakijk) return s;
+      const uitslag = pasNakijk(s.uitslag, nakijk);
+      const vakId = s.toets.bron.vakId || s.vakId || DEFAULT_VAK_ID;
+      try {
+        slaDiagnoseOp({
+          diagnose: uitslag.diagnose,
+          bron: s.toets.bron,
+          leerjaar: s.toets.bron.leerjaar,
+          niveau: s.toets.bron.niveau,
+          hoofdstukId: s.toets.bron.hoofdstukId,
+          vakId,
+        });
+      } catch {
+        /* localStorage mag falen */
+      }
+      return { ...s, uitslag };
+    });
+  }, []);
   const resetKeepStudent = useCallback(() => {
     setState((s) => ({
       ...initial,
@@ -315,6 +336,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       volgendeDoor,
       stopDoor,
       openBio,
+      zetNakijk,
       resetKeepStudent,
       home,
     }),
@@ -337,6 +359,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       volgendeDoor,
       stopDoor,
       openBio,
+      zetNakijk,
       resetKeepStudent,
       home,
     ],

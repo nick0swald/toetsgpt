@@ -113,12 +113,20 @@ export type Diagnose = {
   lastig: StofScore[];
 };
 
+/** Eén AI-beurt na het inleveren. Stuurt het briefje en de volgende ronde. */
+export type Nakijk = {
+  zinnen: string;
+  volgende: "stof" | "lees";
+  lastigIds: string[];
+};
+
 export type ToetsUitslag = {
   behaald: number;
   totaal: number;
   cijfer: number;
   perVraag: VraagUitslag[];
   diagnose: Diagnose;
+  nakijk?: Nakijk;
 };
 
 export type Screen = "start" | "vandaag" | "zelf" | "briefje" | "docent" | "exam" | "door" | "biogpt" | "results" | "overzicht" | "examen" | "examtrain" | "klas";
