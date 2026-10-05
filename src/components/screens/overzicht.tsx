@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { koppelVanKlas } from "@/lib/toets/koppel";
 import { leesOverzicht, type Overzicht } from "@/lib/toets/stats";
 import { useSession } from "@/lib/toets/session";
 import { TopBar } from "./zelf";
@@ -13,6 +14,7 @@ export function OverzichtScreen() {
   const [busy, setBusy] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
   const [data, setData] = useState<Overzicht | null>(null);
+  const [gekopieerd, setGekopieerd] = useState(false);
 
   async function openen(code = pin) {
     setFout(null);
@@ -77,7 +79,7 @@ export function OverzichtScreen() {
           <p className="text-sm text-muted-foreground">
             {data.totaal === 0
               ? "Nog geen oefeningen in de laatste 28 dagen."
-              : `${data.totaal} oefenregels · laatste 28 dagen.`}
+              : `${data.totaal} oefenregels · ${data.bank} vragen in de bank · laatste 28 dagen.`}
           </p>
 
           <section className="rounded-2xl bg-card p-4 shadow-[var(--shadow-border)]">
@@ -112,7 +114,8 @@ export function OverzichtScreen() {
             ) : (
               <ul className="mt-3 grid gap-2">
                 {data.stof.map((s) => {
-                  const pct = s.oefeningen > 0 ? s.lastig / s.oefeningen : 0;
+                  const score = s.totaal > 0 ? s.behaald / s.totaal : 1 - (s.oefeningen > 0 ? s.lastig / s.oefeningen : 0);
+                  const zwak = score < 0.55;
                   return (
                     <li
                       key={`${s.vakId}-${s.paragraafId}`}
@@ -125,10 +128,10 @@ export function OverzichtScreen() {
                       <span
                         className={cn(
                           "shrink-0 text-sm tabular-nums",
-                          pct >= 0.55 ? "text-destructive" : "text-muted-foreground",
+                          zwak ? "text-destructive" : "text-muted-foreground",
                         )}
                       >
-                        {s.lastig}/{s.oefeningen}
+                        {s.totaal > 0 ? `${s.behaald}/${s.totaal}` : `${s.lastig}/${s.oefeningen}`}
                       </span>
                     </li>
                   );
@@ -136,6 +139,22 @@ export function OverzichtScreen() {
               </ul>
             )}
           </section>
+
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            onClick={() => {
+              if (!data) return;
+              const tekst = JSON.stringify(koppelVanKlas({ rijen: data.stof }), null, 2);
+              void navigator.clipboard.writeText(tekst).then(
+                () => setGekopieerd(true),
+                () => setFout("Kopiëren lukte niet."),
+              );
+            }}
+          >
+            {gekopieerd ? "Rode doelen gekopieerd" : "Kopieer rode doelen"}
+          </Button>
 
           <Button
             type="button"

@@ -33,7 +33,7 @@ function duurLabel(tijd: TijdKeuze): string {
 }
 
 export function ZelfScreen() {
-  const { state, go, startToets } = useSession();
+  const { state, go, startToets, startDoor } = useSession();
   const vak = vakOf(state.vakId);
   const isLees = vak.id === "lees";
   const fromKlas = parseKlas(state.klas);
@@ -104,8 +104,8 @@ export function ZelfScreen() {
       startLokaal("demo");
       return;
     }
-    if (hoofdstukId && !extra && hoofdstuk?.bank && !hoofdstukHeeftBoek(hoofdstukId)) {
-      startLokaal("zelf");
+    if (hoofdstuk?.wachtOpStof && !extra && !lastig.trim()) {
+      setFout("Dit hoofdstuk heeft nog geen stof.");
       return;
     }
     setBusy(true);
@@ -323,6 +323,31 @@ export function ZelfScreen() {
         >
           {busy ? "Oefentoets maken…" : isLees ? "Start leesoefening" : "Maak oefentoets"}
         </Button>
+        {isLees || hoofdstuk?.wachtOpStof ? null : (
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            className="mt-3"
+            onClick={() =>
+              startDoor({
+                kind: "door",
+                topic: hoofdstuk?.titel || vak.titel,
+                count: 0,
+                soort: "mix",
+                tijd: "kort",
+                hoofdstukId: hoofdstukId || undefined,
+                paragraafIds: paragraafIds.length ? paragraafIds : undefined,
+                lastig: lastig.trim() || undefined,
+                leerjaar: leerjaar || undefined,
+                niveau: niveau || undefined,
+                vakId: state.vakId,
+              })
+            }
+          >
+            Oefenen zonder einde
+          </Button>
+        )}
       </div>
     </main>
   );

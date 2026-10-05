@@ -6,12 +6,23 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { DEFAULT_VAK_ID } from "./stof";
-import { gradeToets } from "./scoring";
+import { DEFAULT_VAK_ID, vakOf } from "./stof";
+import { bouwOefentoets } from "./demo";
+import { diagnoseVan, gradeQuestion, gradeToets } from "./scoring";
+import { doelId } from "./koppel";
 import { slaDiagnoseOp } from "./diagnose-geheugen";
 import { voegHuiswerkRondeToe } from "./huiswerk";
 import { rapporteerOefening } from "./stats";
-import type { Screen, Toets, ToetsUitslag } from "./types";
+import type { Question, Screen, Toets, ToetsBron, ToetsUitslag, VraagUitslag } from "./types";
+
+export type DoorRonde = {
+  log: VraagUitslag[];
+  vraag: Question;
+  antwoord: string;
+  nakijk: VraagUitslag | null;
+  bron: ToetsBron;
+  gezien: string[];
+};
 
 export type SessionState = {
   screen: Screen;
@@ -26,6 +37,7 @@ export type SessionState = {
   uitslag: ToetsUitslag | null;
   confirmSubmit: boolean;
   docentPin: string;
+  door: DoorRonde | null;
 };
 
 const initial: SessionState = {
@@ -41,6 +53,7 @@ const initial: SessionState = {
   uitslag: null,
   confirmSubmit: false,
   docentPin: "",
+  door: null,
 };
 
 type Api = {
@@ -56,6 +69,11 @@ type Api = {
   askSubmit: () => void;
   cancelSubmit: () => void;
   submit: () => void;
+  startDoor: (bron: ToetsBron, gezien?: string[]) => void;
+  setDoorAntwoord: (value: string) => void;
+  keurDoor: () => void;
+  volgendeDoor: () => void;
+  stopDoor: () => void;
   resetKeepStudent: () => void;
   home: () => void;
 };
@@ -66,6 +84,47 @@ function cijferBucket(cijfer: number): "onder" | "cesuur" | "boven" {
   if (cijfer < 5.5) return "onder";
   if (cijfer < 7) return "cesuur";
   return "boven";
+}
+
+function meld(klas: string, vakId: string, uitslag: ToetsUitslag) {
+  const bucket = cijferBucket(uitslag.cijfer);
+  const events = uitslag.diagnose.perStof.map((row) => ({
+    klas,
+    vakId,
+    hoofdstukId: row.tag.hoofdstukId,
+    paragraafId: row.tag.paragraafId,
+    lastig: row.totaal > 0 && row.behaald / row.totaal < 0.55,
+    cijferBucket: bucket,
+    behaald: row.behaald,
+    totaal: row.totaal,
+    doelId: doelId(vakId, row.tag.hoofdstukId, row.tag.paragraafId),
+  }));
+  if (klas && events.length > 0) {
+    void rapporteerOefening({ data: { events } }).catch(() => undefined);
+  }
+}
+
+function kiesDoorVraag(bron: ToetsBron, log: VraagUitslag[], gezien: string[]): Question | null {
+  const lastig = diagnoseVan(log)
+    .lastig.map((s) => s.tag.paragraafId)
+    .filter((id) => id && id !== "lees-vaktekst");
+  const vragen = bouwOefentoets({
+    count: 6,
+    soort: "mix",
+    tijd: "kort",
+    seed: Date.now() % 1_000_000,
+    kind: "door",
+    topic: bron.topic,
+    hoofdstukId: bron.hoofdstukId,
+    paragraafIds: lastig.length ? lastig : bron.paragraafIds,
+    leerjaar: bron.leerjaar,
+    niveau: bron.niveau,
+    vakId: bron.vakId,
+    excludePrompts: [...gezien, ...log.map((v) => v.question.prompt)],
+  }).questions;
+  const vraag = vragen[Math.floor(Math.random() * vragen.length)];
+  if (!vraag) return null;
+  return { ...vraag, id: `door-${log.length + 1}` };
 }
 
 export function SessionProvider({ children }: { children: ReactNode }) {
@@ -96,6 +155,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       submittedAt: null,
       uitslag: null,
       confirmSubmit: false,
+      door: null,
       screen: "exam",
     }));
   }, []);
@@ -117,15 +177,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const uitslag = gradeToets(s.toets, s.answers);
       const klas = s.klas.trim();
       const vakId = s.toets.bron.vakId || s.vakId || DEFAULT_VAK_ID;
-      const bucket = cijferBucket(uitslag.cijfer);
-      const events = uitslag.diagnose.perStof.map((row) => ({
-        klas,
-        vakId,
-        hoofdstukId: row.tag.hoofdstukId,
-        paragraafId: row.tag.paragraafId,
-        lastig: row.totaal > 0 && row.behaald / row.totaal < 0.55,
-        cijferBucket: bucket,
-      }));
+      meld(klas, vakId, uitslag);
       try {
         slaDiagnoseOp({
           diagnose: uitslag.diagnose,
@@ -147,14 +199,73 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       } catch {
         /* sessionStorage mag falen */
       }
-      if (klas && events.length > 0) {
-        void rapporteerOefening({ data: { events } }).catch(() => undefined);
-      }
       return {
         ...s,
         submittedAt: Date.now(),
         confirmSubmit: false,
         uitslag,
+        screen: "results",
+      };
+    });
+  }, []);
+  const startDoor = useCallback((bron: ToetsBron, gezien: string[] = []) => {
+    const vraag = kiesDoorVraag(bron, [], gezien);
+    if (!vraag) return;
+    setState((s) => ({
+      ...s,
+      door: {
+        log: [],
+        vraag,
+        antwoord: "",
+        nakijk: null,
+        bron: { ...bron, kind: "door" },
+        gezien,
+      },
+      screen: "door",
+      uitslag: null,
+      confirmSubmit: false,
+    }));
+  }, []);
+  const setDoorAntwoord = useCallback((value: string) => {
+    setState((s) => (s.door && !s.door.nakijk ? { ...s, door: { ...s.door, antwoord: value } } : s));
+  }, []);
+  const keurDoor = useCallback(() => {
+    setState((s) => {
+      if (!s.door || s.door.nakijk) return s;
+      const nakijk = gradeQuestion(s.door.vraag, s.door.antwoord);
+      return { ...s, door: { ...s.door, nakijk, log: [...s.door.log, nakijk] } };
+    });
+  }, []);
+  const volgendeDoor = useCallback(() => {
+    setState((s) => {
+      if (!s.door?.nakijk) return s;
+      const vraag = kiesDoorVraag(s.door.bron, s.door.log, s.door.gezien);
+      if (!vraag) return s;
+      return { ...s, door: { ...s.door, vraag, antwoord: "", nakijk: null } };
+    });
+  }, []);
+  const stopDoor = useCallback(() => {
+    setState((s) => {
+      if (!s.door || s.door.log.length === 0) return s;
+      const log = s.door.log;
+      const questions = log.map((v) => v.question);
+      const answers = Object.fromEntries(log.map((v) => [v.question.id, v.given]));
+      const toets: Toets = {
+        title: "Oefenen zonder einde",
+        subject: vakOf(s.door.bron.vakId).titel,
+        questions,
+        bron: { ...s.door.bron, kind: "door", count: questions.length, tijd: "kort" },
+      };
+      const uitslag = gradeToets(toets, answers);
+      meld(s.klas.trim(), s.door.bron.vakId || s.vakId || DEFAULT_VAK_ID, uitslag);
+      return {
+        ...s,
+        toets,
+        answers,
+        uitslag,
+        submittedAt: Date.now(),
+        confirmSubmit: false,
+        door: null,
         screen: "results",
       };
     });
@@ -187,6 +298,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       askSubmit,
       cancelSubmit,
       submit,
+      startDoor,
+      setDoorAntwoord,
+      keurDoor,
+      volgendeDoor,
+      stopDoor,
       resetKeepStudent,
       home,
     }),
@@ -203,6 +319,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       askSubmit,
       cancelSubmit,
       submit,
+      startDoor,
+      setDoorAntwoord,
+      keurDoor,
+      volgendeDoor,
+      stopDoor,
       resetKeepStudent,
       home,
     ],

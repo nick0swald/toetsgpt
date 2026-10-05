@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { SessionProvider, useSession } from "@/lib/toets/session";
+import { DoorScreen } from "./screens/door";
 import { DocentScreen } from "./screens/docent";
 import { ExamScreen } from "./screens/exam";
 import { OverzichtScreen } from "./screens/overzicht";
@@ -58,6 +59,7 @@ function Shell() {
   if (state.screen === "vandaag") screen = <VandaagScreen />;
   else if (state.screen === "zelf") screen = <ZelfScreen />;
   else if (state.screen === "briefje") screen = <BriefjeScreen />;
+  else if (state.screen === "door") screen = <DoorScreen />;
   else if (state.screen === "docent") screen = <DocentScreen />;
   else if (state.screen === "exam") screen = <ExamScreen />;
   else if (state.screen === "examen") screen = <ExamenScreen />;

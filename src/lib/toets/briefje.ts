@@ -1,4 +1,5 @@
 import { nlCijfer } from "./format";
+import { koppelDoel, type KoppelDoel } from "./koppel";
 import { CURRICULUM, hoofdstukById } from "./stof";
 import type { Diagnose, StofScore, Toets, ToetsUitslag } from "./types";
 
@@ -7,6 +8,7 @@ export type OefenBriefje = {
   app: "ToetsGPT";
   feedback: string;
   vak: string;
+  vakId?: string;
   leerjaar?: string;
   niveau?: string;
   hoofdstukId?: string;
@@ -14,6 +16,8 @@ export type OefenBriefje = {
   lastig?: string;
   topic?: string;
   cijfer?: number;
+  klas?: string;
+  doelen?: KoppelDoel[];
 };
 
 const MARKER = "---toetsgpt---";
@@ -66,28 +70,38 @@ export function schrijfFeedback(diagnose: Diagnose, behaald: number, totaal: num
   return zinnen.slice(0, 3).join(" ");
 }
 
-export function briefjeVan(toets: Toets, uitslag: ToetsUitslag): OefenBriefje {
+export function briefjeVan(toets: Toets, uitslag: ToetsUitslag, klas?: string): OefenBriefje {
   const d = uitslag.diagnose;
   const lastigTags = d.lastig.length ? d.lastig : [];
   const paras = lastigTags.map((s) => s.tag.paragraafId);
   const hoofdstukken = new Set(lastigTags.map((s) => s.tag.hoofdstukId));
-  const hoofdstukId =
-    hoofdstukken.size === 1
-      ? [...hoofdstukken][0]
-      : toets.bron.hoofdstukId;
+  const hoofdstukId = hoofdstukken.size === 1 ? [...hoofdstukken][0] : toets.bron.hoofdstukId;
+  const vakId = toets.bron.vakId || "nask";
+  const doelen = d.perStof.map((s) =>
+    koppelDoel({
+      vakId,
+      hoofdstukId: s.tag.hoofdstukId,
+      paragraafId: s.tag.paragraafId,
+      label: s.tag.label,
+      behaald: s.behaald,
+      totaal: s.totaal,
+    }),
+  );
   return {
     v: 1,
     app: "ToetsGPT",
     feedback: schrijfFeedback(d, uitslag.behaald, uitslag.totaal),
     vak: toets.subject || CURRICULUM.titel,
+    vakId,
     leerjaar: toets.bron.leerjaar,
     niveau: toets.bron.niveau,
     hoofdstukId,
     paragraafIds: paras.length ? paras : toets.bron.paragraafIds,
-    lastig:
-      lastigTags.map((s) => kortLabel(s.tag.label)).join(", ") || toets.bron.lastig,
+    lastig: lastigTags.map((s) => kortLabel(s.tag.label)).join(", ") || toets.bron.lastig,
     topic: toets.bron.topic,
     cijfer: uitslag.cijfer,
+    klas: klas?.trim() || undefined,
+    doelen,
   };
 }
 
@@ -100,20 +114,36 @@ export function serializeBriefje(briefje: OefenBriefje): string {
   const payload = JSON.stringify({
     v: 1,
     app: "ToetsGPT",
+    koppel: "toetsgpt-1",
     vak: briefje.vak,
+    vakId: briefje.vakId,
+    klas: briefje.klas,
     leerjaar: briefje.leerjaar,
     niveau: briefje.niveau,
     hoofdstukId: briefje.hoofdstukId,
     paragraafIds: briefje.paragraafIds,
     lastig: briefje.lastig,
     topic: briefje.topic,
+    cijfer: briefje.cijfer,
+    feedback: briefje.feedback,
+    doelen: briefje.doelen,
   });
+  const aandacht = (briefje.doelen ?? []).filter((d) => d.rood);
+  const aandachtRegels = aandacht.length
+    ? aandacht.map((d) => `- ${d.label}`)
+    : ["- Geen rood onderdeel."];
   return [
     "ToetsGPT oefenbriefje",
     titel ? `Stof: ${titel}` : "",
     score,
     "",
+    "Feedback",
     briefje.feedback,
+    "",
+    "Aandachtspunten",
+    ...aandachtRegels,
+    "",
+    "Voor je docent of voor jezelf. Geen officieel cijfer.",
     "",
     MARKER,
     payload,
@@ -144,17 +174,41 @@ export function parseBriefje(raw: string): OefenBriefje | null {
       const paragraafIds = Array.isArray(data.paragraafIds)
         ? data.paragraafIds.filter((x): x is string => typeof x === "string").slice(0, 12)
         : undefined;
+      const uitDoelen = Array.isArray(data.doelen)
+        ? data.doelen.flatMap((d) => {
+            if (!d || typeof d !== "object") return [];
+            const row = d as Partial<KoppelDoel>;
+            if (typeof row.paragraafId !== "string" || typeof row.id !== "string") return [];
+            return [
+              {
+                id: row.id,
+                vakId: typeof row.vakId === "string" ? row.vakId : "nask",
+                hoofdstukId: typeof row.hoofdstukId === "string" ? row.hoofdstukId : "",
+                paragraafId: row.paragraafId,
+                label: typeof row.label === "string" ? row.label : row.paragraafId,
+                behaald: typeof row.behaald === "number" ? row.behaald : 0,
+                totaal: typeof row.totaal === "number" ? row.totaal : 0,
+                rood: row.rood === true,
+              } satisfies KoppelDoel,
+            ];
+          })
+        : undefined;
+      const rodeParas = uitDoelen?.filter((d) => d.rood).map((d) => d.paragraafId);
       return {
         v: 1,
         app: "ToetsGPT",
         feedback: (typeof data.feedback === "string" && data.feedback.trim()) || feedbackPart || "",
         vak: typeof data.vak === "string" ? data.vak : CURRICULUM.titel,
+        vakId: typeof data.vakId === "string" ? data.vakId : undefined,
         leerjaar: typeof data.leerjaar === "string" ? data.leerjaar : undefined,
         niveau: typeof data.niveau === "string" ? data.niveau : undefined,
         hoofdstukId: typeof data.hoofdstukId === "string" ? data.hoofdstukId : undefined,
-        paragraafIds,
+        paragraafIds: paragraafIds?.length ? paragraafIds : rodeParas,
         lastig: typeof data.lastig === "string" ? data.lastig : undefined,
         topic: typeof data.topic === "string" ? data.topic : undefined,
+        cijfer: typeof data.cijfer === "number" ? data.cijfer : undefined,
+        klas: typeof data.klas === "string" ? data.klas : undefined,
+        doelen: uitDoelen,
       };
     }
   } catch {

@@ -14,6 +14,8 @@ export type Hoofdstuk = {
   paragrafen: Paragraaf[];
   bank: boolean;
   boek?: boolean;
+  /** Hoofdstuk staat klaar, de toetstof komt er nog in. */
+  wachtOpStof?: boolean;
 };
 
 export type VakStatus = "live" | "binnenkort";
@@ -40,10 +42,24 @@ const NASK: Vak = {
 const BIOLOGIE: Vak = {
   id: "biologie",
   titel: "Biologie",
-  status: "binnenkort",
+  status: "live",
   boek: "Biologie VMBO",
-  bronLabel: "Volgt: volledig curriculum biologie van Nick.",
-  hoofdstukken: [],
+  bronLabel: "Alleen basisstof 13.3 tot en met 13.6.",
+  hoofdstukken: [
+    {
+      id: "bio-13",
+      titel: "13 Gaswisseling en uitscheiding",
+      jaren: ["2", "3", "4"],
+      niveaus: ["BB", "KB", "GT"],
+      paragrafen: [
+        { id: "bio-13-3", titel: "13.3 Ademhalingsstelsel" },
+        { id: "bio-13-4", titel: "13.4 Inademen en uitademen" },
+        { id: "bio-13-5", titel: "13.5 Longaandoeningen" },
+        { id: "bio-13-6", titel: "13.6 Dieren" },
+      ],
+      bank: true,
+    },
+  ],
 };
 
 const LEZEN: Vak = {

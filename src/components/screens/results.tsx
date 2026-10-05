@@ -28,7 +28,7 @@ import type { McQuestion, Question, StofScore } from "@/lib/toets/types";
 import { cn } from "@/lib/utils";
 
 export function ResultsScreen() {
-  const { state, startToets, home, resetKeepStudent, go } = useSession();
+  const { state, startToets, startDoor, home, resetKeepStudent, go } = useSession();
   const [busy, setBusy] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
   const [bewaarHint, setBewaarHint] = useState<string | null>(null);
@@ -45,7 +45,7 @@ export function ResultsScreen() {
   const diagnose = uitslag.diagnose;
   const heeftStof = diagnose.perStof.length > 0;
   const lastig = diagnose.lastig;
-  const briefje = briefjeVan(huidige, uitslag);
+  const briefje = briefjeVan(huidige, uitslag, state.klas);
   const isExamenOefen =
     /examen/i.test(huidige.title) ||
     /examen/i.test(huidige.bron.topic) ||
@@ -135,6 +135,7 @@ export function ResultsScreen() {
           leerjaar: bron.leerjaar,
           niveau: bron.niveau,
           vakId: bron.vakId || state.vakId,
+          excludePrompts: huidige.questions.map((q) => q.prompt),
         }),
       );
       return;
@@ -369,7 +370,7 @@ export function ResultsScreen() {
           </ul>
         ) : null}
         <p className="mt-3 text-xs leading-relaxed text-subtle">
-          Bewaar de hele toets met antwoorden en punten. Het txt-bestand kun je later ook inladen bij Zelf oefenen.
+          Bewaar de hele toets met antwoorden en punten. Lever het in bij je docent, of houd het voor jezelf.
         </p>
       </section>
 
@@ -624,6 +625,28 @@ export function ResultsScreen() {
             }}
           >
             Reparatieronde
+          </Button>
+        ) : null}
+        {huidige.bron.hoofdstukId ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            onClick={() =>
+              startDoor(
+                {
+                  ...huidige.bron,
+                  kind: "door",
+                  paragraafIds: lastig.length
+                    ? lastig.map((s) => s.tag.paragraafId)
+                    : huidige.bron.paragraafIds,
+                  lastig: lastig.map((s) => s.tag.label).join(", ") || huidige.bron.lastig,
+                },
+                huidige.questions.map((q) => q.prompt),
+              )
+            }
+          >
+            Blijf oefenen
           </Button>
         ) : null}
         <Button type="button" variant="secondary" size="lg" onClick={resetKeepStudent}>

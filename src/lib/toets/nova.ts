@@ -278,14 +278,16 @@ const SERIES: Record<NovaSeries, { boek: string; jaar: Leerjaar; chapters: NovaC
 
 /** Lokale oefenvragen (dichtheid/snelheid/kracht/elektra) → Nova-hoofdstuk. */
 export const BANK_ALIAS: Record<string, string[]> = {
-  "kgt12-2": ["dichtheid"],
+  "kgt12-2": ["dichtheid", "stoffen"],
   "kgt12-4": ["elektra"],
   "kgt12-5": ["snelheid"],
+  "kgt12-8": ["geluid"],
   "gt3-1": ["elektra"],
   "gt3-3": ["kracht"],
   "gt3-7": ["dichtheid"],
   "gt4-10": ["kracht"],
   "gt4-12": ["elektra"],
+  "gt4-13": ["geluid"],
   "gt4-15": ["snelheid"],
 };
 

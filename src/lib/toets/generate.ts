@@ -5,8 +5,11 @@ import { parseLeerlingToets } from "./parse-paste";
 import { balanceMcLetters, mulberry32, shuffled } from "./shuffle";
 import type { InvulQuestion, McQuestion, OpenQuestion, Question, Toets, ToetsBron, VraagSoort } from "./types";
 import { LETTERS } from "./types";
-import { CURRICULUM, hoofdstukById, vakOf } from "./stof";
+import { figuurUitJson } from "./figuren/render";
+import { bioLesstof } from "./bio";
 import { novaLesstof } from "./nova-boek.server";
+import { CURRICULUM, hoofdstukById, vakOf } from "./stof";
+import { bankIsRijp, bewaarVragen, pakVragen, zorgVoorZaad } from "./vraagbank";
 
 const InputSchema = z.object({
   mode: z.enum(["zelf", "docent", "regen", "extra"]),
@@ -45,6 +48,7 @@ const AiQuestion = z.object({
   acceptKeywords: z.array(z.string()).optional(),
   stofLabel: z.string().max(80).optional(),
   paragraafId: z.string().max(40).optional(),
+  figuur: z.unknown().optional(),
 });
 
 const AiToets = z.object({
@@ -71,6 +75,14 @@ VRAAGTYPES
 - MC max 1 punt. Invul 1 punt. Open 2 punten.
 - Invul: prompt bevat precies één ___.
 - why: ÉÉN korte zin.
+- Bij NaSk heeft minstens de helft van de stofvragen een "figuur". Bouw dat figuur voor déze vraag, niet uit een vast sjabloon. Het getal dat de leerling moet aflezen staat alleen in het figuur, niet nog eens in de tekst. Teken het antwoord niet: geen rode pijl, geen resultante als de leerling die moet vinden.
+  maatcilinder: {"type":"maatcilinder","max":100,"streep":2,"getalElke":20,"cilinders":[{"niveau":40,"label":"vóór"},{"niveau":62,"label":"ná","voorwerp":true}]}
+  grafiek: {"type":"grafiek","x":{"label":"tijd (min)","min":0,"max":14,"stap":2},"y":{"label":"temperatuur (°C)","min":0,"max":80,"stap":10},"reeksen":[{"vorm":"lijn","punten":[[0,20],[4,44],[10,44],[14,70]]}]} vorm is lijn, vloeiend of punten.
+  krachten: {"type":"krachten","voorwerp":"bloempot","schaalN":20,"puntLabel":"Z","pijlen":[{"naam":"Fz","grootteN":40,"hoek":270,"label":"Fz"}]} voorwerp is bloempot, boomstam, krat of geen. hoek 0 = rechts, 90 = omhoog, 270 = omlaag. Lege pijlen mag, als de leerling ze zelf moet bedenken.
+  meter: {"type":"meter","soort":"wijzer","eenheid":"V","min":0,"max":10,"streep":1,"waarde":4.5} of {"type":"meter","soort":"kwh","waarde":1234.5,"cijfers":5,"decimalen":1}
+  schakelschema: {"type":"schakelschema","bron":{"soort":"cel","label":"6 V"},"takken":[{"onderdelen":[{"soort":"lamp","label":"L1"}]},{"onderdelen":[{"soort":"schakelaar","label":"S"},{"soort":"lamp","label":"L2"}]}]} soort is lamp, schakelaar, weerstand, variabele-weerstand, spanningsmeter, stroommeter, motor, diode, led, zekering, cel of wisselbron. Hoogstens 4 takken, 3 onderdelen per tak.
+  oscilloscoop: {"type":"oscilloscoop","hokjesX":8,"hokjesY":6,"notitie":"zelfde instelling","panelen":[{"label":"P","amplitude":1,"trillingstijd":4},{"label":"C","amplitude":2,"trillingstijd":2}]} amplitude in hokjes, trillingstijd in hokjes.
+- Leesvragen: geen figuur. Nooit een foto.
 
 OUTPUT
 - Alleen JSON.
@@ -84,7 +96,8 @@ OUTPUT
     "acceptNumbers": number[],
     "acceptKeywords": string[],
     "stofLabel": string,
-    "paragraafId": string
+    "paragraafId": string,
+    "figuur": object of null
   }] }`;
 }
 
@@ -130,10 +143,12 @@ LEERLINGTOETS:
 ${data.lesstof}`;
   }
   const nova = novaLesstof(data.hoofdstukId, data.paragraafIds);
-  const bron = nova
-    ? `NOVA-LESSTOF (niet letterlijk overnemen; andere namen en getallen. Leesvragen: herschrijf een kort stuk vaktekst, geen boekopdracht):\n${nova}`
+  const bio = bioLesstof(data.hoofdstukId);
+  const boekstof = nova || bio;
+  const bron = boekstof
+    ? `LESSTOF (niet letterlijk overnemen; andere namen. Geen boekopdracht en geen uitwerking. Leesvragen: herschrijf een kort stuk vaktekst):\n${boekstof}`
     : `Lesstof of onderwerp:\n${data.lesstof || h?.titel || "dichtheid en snelheid"}`;
-  const extraPlak = !nova && data.lesstof ? "" : data.lesstof && nova ? `\nExtra van de leerling:\n${data.lesstof}` : "";
+  const extraPlak = !boekstof && data.lesstof ? "" : data.lesstof && boekstof ? `\nExtra van de leerling:\n${data.lesstof}` : "";
   return `${klas} ${niveau} ${stof} ${lastig} ${extra} ${regen}
 Maak ${data.count} vragen. ${soortLine}
 ${bron}${extraPlak}`;
@@ -146,6 +161,10 @@ function toQuestions(raw: z.infer<typeof AiToets>, data: GenerateInput): Questio
       paragraafId: q.paragraafId || data.paragraafIds?.[0] || "algemeen",
       label: q.stofLabel || hoofdstukById(data.hoofdstukId ?? "")?.titel || CURRICULUM.titel,
     };
+    const figuur =
+      q.skill === "lees" || data.vakId === "lees" || data.vakId === "biologie"
+        ? undefined
+        : (figuurUitJson(q.figuur) ?? undefined);
     if (q.type === "mc") {
       const correct = q.correct ?? q.modelAnswer;
       const distractors = (q.distractors ?? ["-", "-", "-"]) as [string, string, string];
@@ -164,6 +183,7 @@ function toQuestions(raw: z.infer<typeof AiToets>, data: GenerateInput): Questio
         why: q.why.trim(),
         skill: q.skill === "lees" ? "lees" : "stof",
         stof,
+        ...(figuur ? { figuur } : {}),
       };
       return mq;
     }
@@ -183,6 +203,7 @@ function toQuestions(raw: z.infer<typeof AiToets>, data: GenerateInput): Questio
         },
         skill: q.skill === "lees" ? "lees" : "stof",
         stof,
+        ...(figuur ? { figuur } : {}),
       };
       return iq;
     }
@@ -201,6 +222,7 @@ function toQuestions(raw: z.infer<typeof AiToets>, data: GenerateInput): Questio
       },
       skill: q.skill === "lees" ? "lees" : "stof",
       stof,
+      ...(figuur ? { figuur } : {}),
     };
     return oq;
   });
@@ -245,15 +267,15 @@ async function callGrok(data: GenerateInput): Promise<Toets | null> {
     },
     body: JSON.stringify({
       model: "grok-4.5",
-      temperature: 0.7,
-      max_tokens: 3500,
+      temperature: 0.5,
+      max_tokens: 6000,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt(vakOf(data.vakId).titel) },
         { role: "user", content: userPrompt(data) },
       ],
     }),
-    signal: AbortSignal.timeout(12_000),
+    signal: AbortSignal.timeout(22_000),
   });
   if (!res.ok) return null;
   const body = (await res.json()) as {
@@ -308,17 +330,73 @@ function localFallback(data: GenerateInput): Toets | null {
   return null;
 }
 
+function uitBank(vragen: Question[], data: GenerateInput): Toets {
+  const rng = mulberry32(Date.now() % 1_000_000);
+  let gekozen = shuffled(vragen, rng);
+  if (data.soort === "mc") gekozen = gekozen.filter((q) => q.type === "mc" && q.skill !== "lees");
+  if (data.soort === "open") gekozen = gekozen.filter((q) => q.type === "open");
+  if (data.soort === "invul") gekozen = gekozen.filter((q) => q.type === "invul");
+  if (data.soort === "lees") gekozen = gekozen.filter((q) => q.skill === "lees");
+  gekozen = balanceMcLetters(gekozen.slice(0, data.count), rng).map((q, i) => ({ ...q, id: `q${i + 1}` }));
+  const titel = hoofdstukById(data.hoofdstukId ?? "", data.vakId)?.titel;
+  return {
+    title: titel ? `Oefentoets ${titel}` : "Oefentoets",
+    subject: vakOf(data.vakId).titel,
+    questions: gekozen,
+    bron: bronVan(data, gekozen.length),
+  };
+}
+
 export const generateToets = createServerFn({ method: "POST" })
   .validator((input: unknown) => InputSchema.parse(input))
   .handler(async ({ data }): Promise<GenerateResult> => {
+    const vakId = data.vakId || "nask";
+    if (vakId === "biologie" && data.mode !== "docent") {
+      const lokaal = localFallback(data);
+      if (lokaal && lokaal.questions.length >= Math.min(4, data.count)) {
+        return { ok: true, toets: lokaal, usedAi: false };
+      }
+    }
+    const magBank = data.mode !== "docent" && vakId !== "lees";
+    let voorraad: Question[] = [];
+    if (magBank) {
+      try {
+        await zorgVoorZaad();
+        voorraad = await pakVragen({
+          vakId,
+          hoofdstukId: data.hoofdstukId,
+          paragraafIds: data.paragraafIds,
+          soort: data.soort,
+        });
+        if (bankIsRijp(voorraad.length)) {
+          const toets = uitBank(voorraad, data);
+          if (toets.questions.length >= Math.min(4, data.count)) {
+            return { ok: true, toets, usedAi: false };
+          }
+        }
+      } catch {
+        voorraad = [];
+      }
+    }
     try {
       const ai = await callGrok(data);
-      if (ai) return { ok: true, toets: ai, usedAi: true };
+      if (ai) {
+        if (magBank) {
+          void bewaarVragen(ai.questions, "ai", vakId).catch(() => undefined);
+        }
+        return { ok: true, toets: ai, usedAi: true };
+      }
     } catch {
       // val terug
     }
+    if (voorraad.length >= Math.min(4, data.count)) {
+      return { ok: true, toets: uitBank(voorraad, data), usedAi: false };
+    }
     const local = localFallback(data);
-    if (local) return { ok: true, toets: local, usedAi: false };
+    if (local) {
+      if (magBank) void bewaarVragen(local.questions, "demo", vakId).catch(() => undefined);
+      return { ok: true, toets: local, usedAi: false };
+    }
     return {
       ok: false,
       error:

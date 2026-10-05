@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { duurMinuten, formatTijd } from "@/lib/toets/format";
 import { useSession } from "@/lib/toets/session";
+import { renderFiguur } from "@/lib/toets/figuren/render";
+import type { FiguurSpec } from "@/lib/toets/figuren/types";
 import type { InvulQuestion, Letter, McQuestion, OpenQuestion } from "@/lib/toets/types";
 import { ExamenFiguur } from "@/components/toets/examen-figuur";
 import { cn } from "@/lib/utils";
@@ -92,7 +94,9 @@ export function ExamScreen() {
 
         {vraag.figuurId ? (
           <ExamenFiguur id={vraag.figuurId} bijschrift={vraag.figuurBijschrift} />
-        ) : null}
+        ) : (
+          <FiguurBlok spec={vraag.figuur} />
+        )}
 
         {vraag.type === "invul" ? (
           <>
@@ -182,6 +186,17 @@ export function ExamScreen() {
         </div>
       )}
     </main>
+  );
+}
+
+function FiguurBlok({ spec }: { spec?: FiguurSpec }) {
+  const svg = renderFiguur(spec);
+  if (!svg) return null;
+  return (
+    <div
+      className="mt-4 flex justify-center overflow-hidden rounded-2xl bg-white p-3 shadow-[var(--shadow-border)] [&_svg]:h-auto [&_svg]:max-h-64 [&_svg]:w-auto [&_svg]:max-w-full"
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
   );
 }
 

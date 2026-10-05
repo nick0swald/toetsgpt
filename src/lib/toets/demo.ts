@@ -1,6 +1,7 @@
 import { nlGetal } from "./format";
 import { CURRICULUM, eersteHoofdstukId, hoofdstukById, vakOf } from "./stof";
 import { BANK_ALIAS, PARA_ALIAS } from "./nova";
+import { bioBank } from "./bio";
 import { leesBank } from "./lees";
 import { assembleMc, balanceMcLetters, mulberry32, pick, shuffled, type Rng } from "./shuffle";
 import type {
@@ -11,6 +12,7 @@ import type {
   Toets,
   ToetsBron,
 } from "./types";
+import type { FiguurSpec } from "./figuren/types";
 
 const NAMEN = [
   "Lina",
@@ -56,6 +58,30 @@ const SPEED_KMH = [
 
 function tag(hoofdstukId: string, paragraafId: string, label: string): StofTag {
   return { hoofdstukId, paragraafId, label };
+}
+
+function cilinder(ml: number): FiguurSpec {
+  const max = ml <= 50 ? 50 : ml <= 100 ? 100 : 200;
+  return {
+    type: "maatcilinder",
+    max,
+    streep: max <= 50 ? 1 : 2,
+    getalElke: max <= 50 ? 10 : 20,
+    breedteCm: 6,
+    cilinders: [{ niveau: ml, voorwerp: true }],
+  };
+}
+
+function afstandGrafiek(t: number, s: number): FiguurSpec {
+  const xMax = Math.max(5, Math.ceil(t));
+  const yMax = Math.max(5, Math.ceil(s / 5) * 5);
+  return {
+    type: "grafiek",
+    breedteCm: 10,
+    x: { label: "tijd (s)", min: 0, max: xMax, stap: 1 },
+    y: { label: "afstand (m)", min: 0, max: yMax, stap: yMax <= 10 ? 1 : 5 },
+    reeksen: [{ vorm: "lijn", punten: [[0, 0], [t, s]] }],
+  };
 }
 
 function openQ(
@@ -152,21 +178,25 @@ function bank(rng: Rng): Question[] {
     dummySlot,
   );
 
-  const q2 = openQ(
+  const q2 = {
+    ...openQ(
     "d2",
-    `${naam1} weegt een steen. De massa is ${dens.m} g. Met een maatcilinder blijkt het volume ${dens.v} cm³.`,
+    `${naam1} weegt een steen. De massa is ${dens.m} g. Het volume lees je af in de maatcilinder.`,
     "Bereken de dichtheid van de steen in g/cm³. Schrijf alleen het getal en de eenheid.",
     2,
     `${nlGetal(dens.rho)} g/cm³`,
     `Dichtheid = massa / volume = ${dens.m} / ${dens.v} = ${nlGetal(dens.rho)} g/cm³.`,
     { numbers: [dens.rho], tolerance: 0.08 },
     dBer,
-  );
+    ),
+    figuur: cilinder(dens.v),
+  };
 
-  const q3 = assembleMc(
+  const q3 = {
+    ...assembleMc(
     {
       id: "v1",
-      situation: `Een bal rolt in een rechte lijn over de gymvloer. De bal legt ${nlGetal(spd.s, 1)} m af in ${nlGetal(spd.t, 1)} s.`,
+      situation: `Een bal rolt in een rechte lijn. De grafiek toont de afstand tegen de tijd.`,
       prompt: "Wat is de gemiddelde snelheid van de bal?",
       why: `Gemiddelde snelheid = afstand / tijd = ${nlGetal(spd.s, 1)} / ${nlGetal(spd.t, 1)} = ${nlGetal(spd.v, 1)} m/s.`,
       stof: sGem,
@@ -178,7 +208,9 @@ function bank(rng: Rng): Question[] {
       ],
     },
     dummySlot,
-  );
+    ),
+    figuur: afstandGrafiek(spd.t, spd.s),
+  };
 
   const q4 = openQ(
     "v2",
@@ -298,10 +330,11 @@ function bank(rng: Rng): Question[] {
     dummySlot,
   );
 
-  const q12 = assembleMc(
+  const q12 = {
+    ...assembleMc(
     {
       id: "d7",
-      situation: `Een maatcilinder bevat 40 cm³ water. ${naam1} laat een steen zakken. Het water komt tot 55 cm³. De steen heeft een massa van 45 g.`,
+      situation: `${naam1} laat een steen van 45 g in een maatcilinder met water zakken. Lees het volume vóór en ná af.`,
       prompt: "Wat is de dichtheid van de steen?",
       why: "Volume van de steen = 55 − 40 = 15 cm³. Dichtheid = 45 / 15 = 3 g/cm³.",
       stof: dBer,
@@ -309,7 +342,19 @@ function bank(rng: Rng): Question[] {
       distractors: ["1,1 g/cm³", "45 g/cm³", "0,82 g/cm³"],
     },
     dummySlot,
-  );
+    ),
+    figuur: {
+      type: "maatcilinder",
+      max: 50,
+      streep: 2,
+      getalElke: 10,
+      breedteCm: 8,
+      cilinders: [
+        { niveau: 40, label: "vóór" },
+        { niveau: 55, label: "ná", voorwerp: true },
+      ],
+    } satisfies FiguurSpec,
+  };
 
   const q13 = invulQ(
     "d8",
@@ -351,10 +396,11 @@ function bank(rng: Rng): Question[] {
     dVerg,
   );
 
-  const q17 = assembleMc(
+  const q17 = {
+    ...assembleMc(
     {
       id: "k1",
-      situation: "Een kist staat stil op de vloer van het lokaal.",
+      situation: "Een kist staat stil op de vloer van het lokaal. In de figuur is één kracht getekend.",
       prompt: "Welke kracht trekt de kist naar de aarde?",
       why: "Zwaartekracht trekt elk voorwerp naar de aarde.",
       stof: kZwaar,
@@ -362,7 +408,17 @@ function bank(rng: Rng): Question[] {
       distractors: ["De wrijvingskracht", "De veerkracht", "De spankracht"],
     },
     dummySlot,
-  );
+    ),
+    figuur: {
+      type: "krachten",
+      breedteCm: 8,
+      hoogteCm: 8,
+      schaalN: 10,
+      voorwerp: "krat",
+      punt: [4, 4.2],
+      pijlen: [{ naam: "Fz", grootteN: 20, hoek: 270, label: "Fz" }],
+    } satisfies FiguurSpec,
+  };
 
   const q18 = assembleMc(
     {
@@ -387,10 +443,11 @@ function bank(rng: Rng): Question[] {
     kZwaar,
   );
 
-  const q20 = assembleMc(
+  const q20 = {
+    ...assembleMc(
     {
       id: "e1",
-      situation: "Op de tafel liggen een lamp, een batterij en draden.",
+      situation: "Bekijk de stroomkring. De schakelaar staat open.",
       prompt: "Wanneer brandt de lamp?",
       why: "Een lamp brandt als de stroomkring gesloten is.",
       stof: eKring,
@@ -402,7 +459,14 @@ function bank(rng: Rng): Question[] {
       ],
     },
     dummySlot,
-  );
+    ),
+    figuur: {
+      type: "schakelschema",
+      breedteCm: 8,
+      bron: { soort: "cel", label: "1,5 V" },
+      takken: [{ onderdelen: [{ soort: "schakelaar", label: "S" }, { soort: "lamp", label: "L" }] }],
+    } satisfies FiguurSpec,
+  };
 
   const q21 = assembleMc(
     {
@@ -476,11 +540,119 @@ function bank(rng: Rng): Question[] {
     dummySlot,
   );
 
+  const qPot = {
+    ...openQ(
+      "k4",
+      "Sophie hangt een bloempot aan een haak. Z is het zwaartepunt. De bloempot heeft een massa van 6,0 kg. Gebruik g = 10 N/kg.",
+      "Bereken de zwaartekracht op de bloempot in N.",
+      2,
+      "60 N",
+      "Fz = m · g = 6,0 × 10 = 60 N.",
+      { numbers: [60], tolerance: 0.5 },
+      kZwaar,
+    ),
+    figuur: {
+      type: "krachten",
+      breedteCm: 8,
+      hoogteCm: 10,
+      schaalN: 20,
+      voorwerp: "bloempot",
+      punt: [4, 3.2],
+      puntLabel: "Z",
+      pijlen: [],
+    } satisfies FiguurSpec,
+  };
+
+  const qParallel = {
+    ...assembleMc(
+      {
+        id: "e6",
+        situation: "Sanne bouwt deze schakeling. Schakelaar S staat open. Lamp L1 brandt. De batterij blijft 6 V.",
+        prompt: "Wat gebeurt er met L1 als Sanne schakelaar S sluit?",
+        why: "L1 en L2 staan parallel. L1 krijgt dezelfde spanning en blijft even fel branden.",
+        stof: eKring,
+        correct: "L1 blijft even fel branden.",
+        distractors: ["L1 gaat uit.", "L1 gaat zwakker branden.", "L1 gaat feller branden."],
+      },
+      dummySlot,
+    ),
+    figuur: {
+      type: "schakelschema",
+      breedteCm: 11,
+      bron: { soort: "cel", label: "6 V" },
+      takken: [
+        { onderdelen: [{ soort: "lamp", label: "L1" }] },
+        { onderdelen: [{ soort: "schakelaar", label: "S" }, { soort: "lamp", label: "L2" }] },
+      ],
+    } satisfies FiguurSpec,
+  };
+
+  const qFase = {
+    ...assembleMc(
+      {
+        id: "st1",
+        situation: "Daan verwarmt vast laurinezuur. De grafiek toont de temperatuur. Het middelste stuk is vlak.",
+        prompt: "Wat gebeurt er in het vlakke stuk?",
+        why: "De temperatuur blijft gelijk. Het vaste laurinezuur smelt.",
+        stof: tag("stoffen", "stoffen-fase", "Stoffen · faseovergang"),
+        correct: "Het laurinezuur smelt. Vast en vloeibaar zijn er allebei.",
+        distractors: [
+          "Het laurinezuur is alleen vast. Er is geen faseovergang.",
+          "Het laurinezuur kookt.",
+          "Het laurinezuur stolt.",
+        ],
+      },
+      dummySlot,
+    ),
+    figuur: {
+      type: "grafiek",
+      breedteCm: 11,
+      x: { label: "tijd (min)", min: 0, max: 14, stap: 2 },
+      y: { label: "temperatuur (°C)", min: 0, max: 80, stap: 10 },
+      reeksen: [{ vorm: "lijn", punten: [[0, 20], [3, 44], [9, 44], [14, 70]] }],
+    } satisfies FiguurSpec,
+  };
+
+  const qOsc = {
+    ...assembleMc(
+      {
+        id: "g1",
+        situation: "Beeld P is de eerste toon. Daarna blaast Noor een toon die hoger én harder is. Alle beelden hebben dezelfde instelling.",
+        prompt: "Welk beeld hoort bij de tweede toon?",
+        why: "Hoger betekent een kortere trillingstijd. Harder betekent een grotere amplitude. Dat is beeld C.",
+        stof: tag("geluid", "geluid-toon", "Geluid · toonhoogte"),
+        correct: "Beeld C",
+        distractors: ["Beeld A", "Beeld B", "Beeld D"],
+      },
+      dummySlot,
+    ),
+    figuur: {
+      type: "oscilloscoop",
+      breedteCm: 14,
+      hokjesX: 8,
+      hokjesY: 6,
+      notitie: "Alle beelden: zelfde instelling",
+      panelen: [
+        { label: "P", amplitude: 1, trillingstijd: 4 },
+        { label: "A", amplitude: 2, trillingstijd: 4 },
+        { label: "B", amplitude: 1, trillingstijd: 2 },
+        { label: "C", amplitude: 2, trillingstijd: 2 },
+        { label: "D", amplitude: 1, trillingstijd: 8 },
+      ],
+    } satisfies FiguurSpec,
+  };
+
   return [
     q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14, q15, q16, q17, q18, q19, q20, q21,
     q22, q23, q24, q25, q26,
+    qPot, qParallel, qFase, qOsc,
+    ...bioBank(),
     ...leesBank(rng),
   ];
+}
+
+export function voorbeeldVragen(seed = 1): Question[] {
+  return bank(mulberry32(seed));
 }
 
 function treftLastig(q: Question, lastig: string): boolean {
@@ -494,6 +666,27 @@ function rankLaag(list: Question[], lastig: string, rng: Rng): Question[] {
   const mixed = shuffled(list, rng);
   if (!lastig.trim()) return mixed;
   return mixed.sort((a, b) => Number(treftLastig(b, lastig)) - Number(treftLastig(a, lastig)));
+}
+
+function neemBio(source: Question[], count: number, rng: Rng): Question[] {
+  if (count <= 0 || source.length === 0) return [];
+  const leesQs = shuffled(source.filter((q) => q.skill === "lees"), rng);
+  const openQs = shuffled(source.filter((q) => q.type === "open"), rng);
+  const mcQs = shuffled(source.filter((q) => q.type === "mc" && q.skill !== "lees"), rng);
+  const leesCount = Math.min(leesQs.length, Math.max(count >= 6 ? 2 : 1, Math.round(count * 0.3)));
+  const rest = Math.max(0, count - leesCount);
+  const openCount = Math.min(openQs.length, Math.round(rest * 0.7));
+  const mcCount = Math.min(mcQs.length, Math.max(0, rest - openCount));
+  const picked: Question[] = [
+    ...leesQs.slice(0, leesCount),
+    ...openQs.slice(0, openCount),
+    ...mcQs.slice(0, mcCount),
+  ];
+  for (const q of shuffled(source, rng)) {
+    if (picked.length >= count) break;
+    if (!picked.includes(q)) picked.push(q);
+  }
+  return picked.slice(0, count);
 }
 
 function neemMix(source: Question[], count: number, rng: Rng): Question[] {
@@ -518,7 +711,16 @@ function neemMix(source: Question[], count: number, rng: Rng): Question[] {
     if (picked.length >= count) break;
     if (!picked.includes(q)) picked.push(q);
   }
-  return picked.slice(0, count);
+  const gekozen = picked.slice(0, count);
+  if (!gekozen.some((q) => q.figuur)) {
+    const plaatje = shuffled(
+      source.filter((q) => q.figuur && !gekozen.includes(q)),
+      rng,
+    )[0];
+    const vervang = gekozen.findIndex((q) => q.skill !== "lees");
+    if (plaatje && vervang >= 0) gekozen[vervang] = plaatje;
+  }
+  return gekozen;
 }
 
 export function bouwOefentoets(opts: {
@@ -534,6 +736,7 @@ export function bouwOefentoets(opts: {
   leerjaar?: string;
   niveau?: string;
   vakId?: string;
+  excludePrompts?: string[];
 }): Toets {
   const count = opts.count ?? 8;
   const soort = opts.vakId === "lees" ? "lees" : (opts.soort ?? "auto");
@@ -544,14 +747,17 @@ export function bouwOefentoets(opts: {
   const all = bank(rng).filter((q) => {
     const bio = q.stof?.hoofdstukId.startsWith("bio-");
     if ((opts.vakId ?? "nask") === "lees") return q.skill === "lees";
-    if ((opts.vakId ?? "nask") === "biologie") return Boolean(bio);
+    if ((opts.vakId ?? "nask") === "biologie") return q.stof?.hoofdstukId === "bio-13";
     return !bio;
   });
+  const overslaan = new Set((opts.excludePrompts ?? []).filter(Boolean));
+  const verse = overslaan.size ? all.filter((q) => !overslaan.has(q.prompt)) : all;
+  const bron = verse.length ? verse : all;
   const paras = opts.paragraafIds?.filter(Boolean) ?? [];
   const paraIds = new Set(paras.flatMap((p) => [p, ...(PARA_ALIAS[p] ?? [])]));
   const lastig = opts.lastig ?? "";
 
-  let voorkeur = all;
+  let voorkeur = bron;
   if (opts.hoofdstukId) {
     const tagged = all.filter((q) => q.stof && stofIds.has(q.stof.hoofdstukId));
     if (tagged.length) voorkeur = tagged;
@@ -565,7 +771,7 @@ export function bouwOefentoets(opts: {
   if (soort === "invul") voorkeur = voorkeur.filter((q) => q.type === "invul");
   if (soort === "lees") voorkeur = voorkeur.filter((q) => q.skill === "lees");
 
-  const rest = all.filter((q) => !voorkeur.includes(q));
+  const rest = bron.filter((q) => !voorkeur.includes(q));
   const zelfdeHoofdstuk = rest.filter(
     (q) => !opts.hoofdstukId || (q.stof && stofIds.has(q.stof.hoofdstukId)),
   );
@@ -585,7 +791,8 @@ export function bouwOefentoets(opts: {
     const beschikbaar = laag.filter((q) => !picked.includes(q));
     const nodig = count - picked.length;
     if (soort === "auto" || soort === "mix") {
-      picked.push(...neemMix(beschikbaar, nodig, rng));
+      const mix = opts.vakId === "biologie" ? neemBio : neemMix;
+      picked.push(...mix(beschikbaar, nodig, rng));
     } else if (soort === "lees") {
       picked.push(...shuffled(beschikbaar.filter((q) => q.skill === "lees"), rng).slice(0, nodig));
     } else {

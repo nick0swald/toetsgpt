@@ -1,3 +1,5 @@
+import type { FiguurSpec } from "./figuren/types";
+
 export const KLASSEN = ["2.5G", "2.6G", "3.5G", "3.6G", "4GT", "3HGL"] as const;
 export type Klas = (typeof KLASSEN)[number];
 
@@ -45,6 +47,8 @@ type VraagBasis = {
   /** Optionele CE-stijl figuur (SVG-id). */
   figuurId?: string;
   figuurBijschrift?: string;
+  /** NaSk-meetfiguur (maatcilinder, grafiek, krachten, meter, schakelschema). */
+  figuur?: FiguurSpec;
 };
 
 export type McQuestion = VraagBasis & {
@@ -69,7 +73,7 @@ export type InvulQuestion = VraagBasis & {
 export type Question = McQuestion | OpenQuestion | InvulQuestion;
 
 export type ToetsBron = {
-  kind: "zelf" | "docent" | "demo" | "extra";
+  kind: "zelf" | "docent" | "demo" | "extra" | "door";
   topic: string;
   raw?: string;
   count: number;
@@ -117,4 +121,4 @@ export type ToetsUitslag = {
   diagnose: Diagnose;
 };
 
-export type Screen = "start" | "vandaag" | "zelf" | "briefje" | "docent" | "exam" | "results" | "overzicht" | "examen" | "examtrain" | "klas";
+export type Screen = "start" | "vandaag" | "zelf" | "briefje" | "docent" | "exam" | "door" | "results" | "overzicht" | "examen" | "examtrain" | "klas";

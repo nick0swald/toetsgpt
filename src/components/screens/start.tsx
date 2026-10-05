@@ -1,6 +1,5 @@
-import type { ReactNode } from "react";
-import { useState } from "react";
-import { BookOpen, FileText, GraduationCap, PencilLine } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { BookOpen, FileText, GraduationCap, Leaf, PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,7 +35,19 @@ export function StartScreen() {
 
   return (
     <div className="stagger-in flex min-h-0 flex-1 flex-col">
-      <p className="max-w-[22ch] text-xl font-extrabold leading-tight tracking-tight text-foreground text-balance">
+      <Ingang
+        icon={<Leaf className="size-6" strokeWidth={2} />}
+        title="Biologie"
+        body="13.3 tot en met 13.6."
+        variant="bio"
+        onClick={() => {
+          if (naamFout) return;
+          setVakId("biologie");
+          go("zelf");
+        }}
+      />
+
+      <p className="mt-5 max-w-[22ch] text-xl font-extrabold leading-tight tracking-tight text-foreground text-balance">
         Oefen een toets. Geen Word, wel een score.
       </p>
 
@@ -195,7 +206,7 @@ function Ingang({
   icon: ReactNode;
   title: string;
   body: string;
-  variant: "primary" | "secondary" | "outline" | "exam" | "klas";
+  variant: "primary" | "secondary" | "outline" | "exam" | "klas" | "bio";
   grow?: boolean;
   onClick: () => void;
 }) {
